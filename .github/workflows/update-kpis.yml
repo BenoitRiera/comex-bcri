@@ -27,22 +27,22 @@ jobs:
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
 
       - name: Fetch KPIs from SharePoint
-  id: fetch_kpis
-  run: |
-    TOKEN="${{ steps.get_token.outputs.token }}"
-    echo "Token length: ${#TOKEN}"
+        id: fetch_kpis
+          run: |
+            TOKEN="${{ steps.get_token.outputs.token }}"
+            echo "Token length: ${#TOKEN}"
     
-    RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
-      "https://bcriholding.sharepoint.com/sites/cockpitdirection/_api/web/lists/getbytitle('KPIs')/items?\$select=Titre,Indicateur,Valeur,Delta,Tendance&\$orderby=Titre%20asc" \
-      -H "Accept: application/json;odata=nometadata" \
-      -H "Authorization: Bearer $TOKEN")
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
+          "https://bcriholding.sharepoint.com/sites/cockpitdirection/_api/web/lists/getbytitle('KPIs')/items?\$select=Titre,Indicateur,Valeur,Delta,Tendance&\$orderby=Titre%20asc" \
+          -H "Accept: application/json;odata=nometadata" \
+          -H "Authorization: Bearer $TOKEN")
     
-    echo "Full response: $RESPONSE"
-    HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS" | cut -d: -f2)
-    echo "HTTP Status: $HTTP_STATUS"
-    
-    BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS")
-    echo "kpis=$BODY" >> $GITHUB_OUTPUT
+        echo "Full response: $RESPONSE"
+        HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS" | cut -d: -f2)
+        echo "HTTP Status: $HTTP_STATUS"
+        
+        BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS")
+        echo "kpis=$BODY" >> $GITHUB_OUTPUT
 
       - name: Update index.html with new KPIs
         run: |
