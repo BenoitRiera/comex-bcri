@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Achats — BRCI Holding</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0D2347; --navy-dark: #0A1A35; --navy-mid: #112a52;
+    --card-bg: rgba(255,255,255,0.055); --card-border: rgba(255,255,255,0.08);
+    --teal: #1D9E75; --teal-light: rgba(29,158,117,0.15);
+    --amber: #EF9F27; --amber-light: rgba(239,159,39,0.15);
+    --blue: #378ADD; --blue-light: rgba(55,138,221,0.15);
+    --pink: #D4537E; --pink-light: rgba(212,83,126,0.15);
+    --purple: #7F77DD; --purple-light: rgba(127,119,221,0.15);
+    --green: #97C459; --green-light: rgba(151,196,89,0.15);
+    --coral: #F0997B; --coral-light: rgba(240,153,123,0.15);
+    --text: #ffffff; --text-muted: rgba(255,255,255,0.45);
+    --text-dim: rgba(255,255,255,0.25); --red: #E24B4A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--navy); color: var(--text); min-height: 100vh; }
+  .topbar {
+    background: var(--navy-dark); padding: 0 24px; height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 10px; }
+  .back-btn {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    color: var(--text); font-size: 18px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    text-decoration: none; transition: background .15s;
+  }
+  .back-btn:hover { background: rgba(255,255,255,0.1); }
+  .logo { width: 36px; height: 36px; background: var(--coral); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; color: #fff; }
+  .app-name { font-size: 15px; font-weight: 500; }
+  .app-sub { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .update-time { font-size: 11px; color: var(--text-dim); font-family: 'DM Mono', monospace; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--navy-mid); border: 1.5px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; }
+  .main { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+  .filter-bar { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
+  .filter-btn {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 20px; padding: 5px 14px; color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif; font-size: 12px; cursor: pointer; transition: all .2s;
+  }
+  .filter-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+  .filter-btn.active { background: var(--coral); border-color: var(--coral); color: #fff; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+  .kpi { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 14px 16px; animation: fadeUp .4s ease both; }
+  .kpi:nth-child(1) { animation-delay: .05s; } .kpi:nth-child(2) { animation-delay: .1s; }
+  .kpi:nth-child(3) { animation-delay: .15s; } .kpi:nth-child(4) { animation-delay: .2s; }
+  .kpi-label { font-size: 9px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+  .kpi-value { font-size: 24px; font-weight: 500; margin-bottom: 4px; }
+  .kpi-delta { font-size: 11px; color: var(--text-dim); }
+  .panel { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 16px; margin-bottom: 10px; }
+  .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .panel-title { font-size: 12px; font-weight: 500; }
+  .chart-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 180px; gap: 10px; }
+  .chart-icon { opacity: .2; }
+  .chart-msg { font-size: 12px; color: var(--text-dim); }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @media (max-width: 768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } .main { padding: 14px 16px; } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <a href="index.html" class="back-btn">‹</a>
+    <div class="logo">BR</div>
+    <div>
+      <div class="app-name">Achats</div>
+      <div class="app-sub">BRCI Holding — Cockpit direction</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="update-time" id="update-time"></div>
+    <div class="avatar">BR</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="filter-bar">
+    <button class="filter-btn active">Global</button>
+    <button class="filter-btn">ESEIS</button>
+    <button class="filter-btn">ESEIS Cleaning</button>
+    <button class="filter-btn">ESEIS Pest Control</button>
+    <button class="filter-btn">ALS</button>
+    <button class="filter-btn">Café Coton</button>
+    <button class="filter-btn">ESEIS Travaux</button>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi" style="border-top:2px solid var(--coral)">
+      <div class="kpi-label">Volume achats</div>
+      <div class="kpi-value">--</div>
+      <div class="kpi-delta">—</div>
+    </div>
+    <div class="kpi" style="border-top:2px solid var(--blue)">
+      <div class="kpi-label">Fournisseurs actifs</div>
+      <div class="kpi-value">--</div>
+      <div class="kpi-delta">—</div>
+    </div>
+    <div class="kpi" style="border-top:2px solid var(--teal)">
+      <div class="kpi-label">Économies réalisées</div>
+      <div class="kpi-value">--</div>
+      <div class="kpi-delta">—</div>
+    </div>
+    <div class="kpi" style="border-top:2px solid var(--amber)">
+      <div class="kpi-label">Délai livraison moyen</div>
+      <div class="kpi-value">--</div>
+      <div class="kpi-delta">—</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">Évolution — Achats</div>
+    </div>
+    <div class="chart-empty">
+      <svg class="chart-icon" width="48" height="32" viewBox="0 0 48 32" fill="none">
+        <rect x="0" y="16" width="8" height="16" rx="2" fill="currentColor"/>
+        <rect x="10" y="8" width="8" height="24" rx="2" fill="currentColor"/>
+        <rect x="20" y="12" width="8" height="20" rx="2" fill="currentColor"/>
+        <rect x="30" y="4" width="8" height="28" rx="2" fill="currentColor"/>
+        <rect x="40" y="10" width="8" height="22" rx="2" fill="currentColor"/>
+      </svg>
+      <div class="chart-msg">Graphique à venir</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  if (!sessionStorage.getItem('brci_auth')) window.location.href = 'index.html';
+  const now = new Date();
+  document.getElementById('update-time').textContent =
+    'Mis à jour le ' + now.toLocaleDateString('fr-FR') + ' à ' +
+    now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
