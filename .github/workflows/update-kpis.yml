@@ -131,9 +131,23 @@ jobs:
           def find_col(headers, keywords):
               for kw in keywords:
                   for i, h in enumerate(headers):
-                      if kw in h.lower():
+                      if h and kw in h.lower():
                           return i
               return None
+
+          def find_header_row(ws):
+              """Scan rows 1-15 to find the one containing KPI/Indicateur/Valeur keywords."""
+              keywords = ['kpi', 'indicateur', 'libellé', 'libelle', 'valeur', 'value']
+              for row_idx in range(1, 16):
+                  row_vals = [str(ws.cell(row=row_idx, column=c).value or '').strip()
+                              for c in range(1, ws.max_column + 1)]
+                  row_str = ' '.join(v.lower() for v in row_vals)
+                  if any(kw in row_str for kw in keywords):
+                      print(f"  Header row found at row {row_idx}: {row_vals[:5]}")
+                      return row_idx, row_vals
+              print("  No header row found, defaulting to row 1")
+              return 1, [str(ws.cell(row=1, column=c).value or '').strip()
+                         for c in range(1, ws.max_column + 1)]
 
           def infer_tendance(delta_str):
               s = str(delta_str)
@@ -153,24 +167,42 @@ jobs:
               processed.add(html_file)
 
               ws = wb[sheet_name]
-              first_row = [str(cell.value).strip() if cell.value else '' for cell in ws[1]]
+              print(f"Sheet '{sheet_name}' → {html_file}")
 
-              col_ind = find_col(first_row, ['indicateur', 'libellé', 'libelle', 'kpi', 'nom'])
-              col_val = find_col(first_row, ['valeur', 'value'])
-              col_del = find_col(first_row, ['delta', 'variation', 'écart', 'ecart'])
+              header_row_idx, headers = find_header_row(ws)
+
+              col_ind = find_col(headers, ['indicateur', 'libellé', 'libelle', 'kpi', 'nom'])
+              col_val = find_col(headers, ['valeur', 'value'])
+              col_uni = find_col(headers, ['unité', 'unite', 'unit'])
+              col_del = find_col(headers, ['delta', 'variation', 'écart', 'ecart'])
 
               if col_ind is None: col_ind = 0
               if col_val is None: col_val = 1
               if col_del is None: col_del = 2
 
+              print(f"  Columns → indicateur:{col_ind} valeur:{col_val} unité:{col_uni} delta:{col_del}")
+
               items = []
-              for row in ws.iter_rows(min_row=2, values_only=True):
+              for row in ws.iter_rows(min_row=header_row_idx + 1, values_only=True):
                   if not row or col_ind >= len(row) or not row[col_ind]:
                       continue
                   indicateur = str(row[col_ind]).strip()
-                  valeur     = str(row[col_val]) if col_val < len(row) and row[col_val] is not None else '--'
-                  delta      = str(row[col_del]) if col_del < len(row) and row[col_del] is not None else '—'
-                  items.append({'indicateur': indicateur, 'valeur': valeur, 'delta': delta})
+                  # Skip rows that look like sub-headers or entity names
+                  if indicateur.upper() == indicateur and len(indicateur) < 30 and row[col_val] is None:
+                      continue
+                  val_raw  = row[col_val] if col_val < len(row) else None
+                  uni_raw  = row[col_uni] if col_uni is not None and col_uni < len(row) else None
+                  del_raw  = row[col_del] if col_del < len(row) else None
+                  # Format value: combine number + unit if available
+                  if val_raw is not None:
+                      val_str = str(val_raw)
+                      if uni_raw:
+                          val_str = f"{val_str} {uni_raw}"
+                  else:
+                      val_str = '--'
+                  delta = str(del_raw) if del_raw is not None else '—'
+                  items.append({'indicateur': indicateur, 'valeur': val_str, 'delta': delta})
+                  print(f"  Row: {indicateur} | {val_str} | {delta}")
 
               if not items:
                   print(f"No data in sheet '{sheet_name}', skipping {html_file}")
