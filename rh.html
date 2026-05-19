@@ -108,27 +108,51 @@
   </div>
 
   <div class="kpi-grid">
+    
     <!-- KPI-START -->
-    <div class="kpi" style="border-top:2px solid var(--pink)">
-      <div class="kpi-label">Effectifs</div>
-      <div class="kpi-value">--</div>
-      <div class="kpi-delta">—</div>
+    <div class="kpi" style="border-top:2px solid var(--teal)" data-kpi='{"Global": {"val": "74,33 nb", "ecart": "+118,6 %"}, "ESEIS": {"val": "87 nb", "ecart": "+10,1 %"}, "ESEIS Cleaning": {"val": "87 nb", "ecart": "+10,1 %"}, "ESEIS Pest Control": {"val": "87 nb", "ecart": "+10,1 %"}, "ALS": {"val": "28 nb", "ecart": "+12,0 %"}, "Café Coton": {"val": "12 nb", "ecart": "+9,1 %"}, "ESEIS Travaux": {"val": "87 nb", "ecart": "+10,1 %"}}'>
+      <div class="kpi-label">Effectif total</div>
+      <div class="kpi-value">74,33 nb</div>
+      <div class="kpi-delta up">▲ +118,6 %</div>
     </div>
-    <div class="kpi" style="border-top:2px solid var(--amber)">
-      <div class="kpi-label">Recrutements ouverts</div>
-      <div class="kpi-value">--</div>
-      <div class="kpi-delta">—</div>
+    <div class="kpi" style="border-top:2px solid var(--blue)" data-kpi='{"Global": {"val": "4,63 %", "ecart": "+0,9 %"}, "ESEIS": {"val": "4,20 %", "ecart": "+7,4 %"}, "ESEIS Cleaning": {"val": "4,20 %", "ecart": "+7,4 %"}, "ESEIS Pest Control": {"val": "4,20 %", "ecart": "+7,4 %"}, "ALS": {"val": "6,30 %", "ecart": "+7,5 %"}, "Café Coton": {"val": "4,70 %", "ecart": "+7,6 %"}, "ESEIS Travaux": {"val": "4,20 %", "ecart": "+7,4 %"}}'>
+      <div class="kpi-label">Taux absentéisme</div>
+      <div class="kpi-value">4,63 %</div>
+      <div class="kpi-delta up">▲ +0,9 %</div>
     </div>
-    <div class="kpi" style="border-top:2px solid var(--red)">
+    <div class="kpi" style="border-top:2px solid var(--amber)" data-kpi='{"Global": {"val": "14,00 %", "ecart": "-8,8 %"}, "ESEIS": {"val": "12,00 %", "ecart": "+7,5 %"}, "ESEIS Cleaning": {"val": "12,00 %", "ecart": "+7,5 %"}, "ESEIS Pest Control": {"val": "12,00 %", "ecart": "+7,5 %"}, "ALS": {"val": "21,00 %", "ecart": "+7,5 %"}, "Café Coton": {"val": "15,00 %", "ecart": "+7,5 %"}, "ESEIS Travaux": {"val": "12,00 %", "ecart": "+7,5 %"}}'>
       <div class="kpi-label">Turnover</div>
-      <div class="kpi-value">--</div>
-      <div class="kpi-delta">—</div>
+      <div class="kpi-value">14,00 %</div>
+      <div class="kpi-delta dn">▼ -8,8 %</div>
     </div>
-    <div class="kpi" style="border-top:2px solid var(--blue)">
-      <div class="kpi-label">Heures de formation</div>
-      <div class="kpi-value">--</div>
-      <div class="kpi-delta">—</div>
+    <div class="kpi" style="border-top:2px solid var(--purple)" data-kpi='{"Global": {"val": "98,67 h", "ecart": "+49,5 %"}, "ESEIS": {"val": "124 h", "ecart": "+9,7 %"}, "ESEIS Cleaning": {"val": "124 h", "ecart": "+9,7 %"}, "ESEIS Pest Control": {"val": "124 h", "ecart": "+9,7 %"}, "ALS": {"val": "52 h", "ecart": "+10,6 %"}, "Café Coton": {"val": "44 h", "ecart": "+10,0 %"}, "ESEIS Travaux": {"val": "124 h", "ecart": "+9,7 %"}}'>
+      <div class="kpi-label">Formation (heures)</div>
+      <div class="kpi-value">98,67 h</div>
+      <div class="kpi-delta up">▲ +49,5 %</div>
     </div>
+    <script>
+    (function(){
+      function switchEntity(name){
+        document.querySelectorAll('.kpi[data-kpi]').forEach(function(card){
+          var d=JSON.parse(card.dataset.kpi);
+          var e=d[name]||d['Global'];
+          card.querySelector('.kpi-value').textContent=e.val;
+          var el=card.querySelector('.kpi-delta');
+          var s=e.ecart;
+          var a=s.includes('+')?'▲':s.includes('-')?'▼':'';
+          el.textContent=a?a+' '+s:s;
+          el.className='kpi-delta '+(s.includes('+')?'up':s.includes('-')?'dn':'');
+        });
+      }
+      document.querySelectorAll('.filter-btn').forEach(function(btn){
+        btn.addEventListener('click',function(){
+          document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});
+          btn.classList.add('active');
+          switchEntity(btn.textContent.trim());
+        });
+      });
+    })();
+    </script>
     <!-- KPI-END -->
   </div>
 
