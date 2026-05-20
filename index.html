@@ -422,27 +422,51 @@
     
     
     
+    
     <!-- KPI-START -->
-    <div class="kpi" style="border-top: 2px solid var(--teal)">
-      <div class="kpi-label">Chiffre d'Affaires</div>
-      <div class="kpi-value">127 M€</div>
-      <div class="kpi-delta up">▲ + 8,2% vs N-1</div>
+    <div class="kpi" style="border-top:2px solid var(--teal)" data-kpi='{"Global": {"val": "17 797 500 €", "ecart": "+2 916,6 %"}, "ESEIS": {"val": "12 500 000 €", "ecart": "+998,9 %"}, "ESEIS Cleaning": {"val": "1 250 000 €", "ecart": "+9,9 %"}, "ESEIS Pest Control": {"val": "1 250 000 €", "ecart": "+9,9 %"}, "ALS": {"val": "420 000 €", "ecart": "+9,9 %"}, "Café Coton": {"val": "310 000 €", "ecart": "+9,9 %"}, "ESEIS Travaux": {"val": "1 250 000 €", "ecart": "+9,9 %"}}'>
+      <div class="kpi-label">CA Global</div>
+      <div class="kpi-value">17 797 500 €</div>
+      <div class="kpi-delta up">▲ +2 916,6 %</div>
     </div>
-    <div class="kpi" style="border-top: 2px solid var(--blue)">
-      <div class="kpi-label">Résultat net</div>
-      <div class="kpi-value">11,7 M€</div>
-      <div class="kpi-delta up">▲ + 3,1%</div>
-    </div>
-    <div class="kpi" style="border-top: 2px solid var(--amber)">
-      <div class="kpi-label">Effectifs</div>
-      <div class="kpi-value">342</div>
-      <div class="kpi-delta up">▲ + 12 ETP</div>
-    </div>
-    <div class="kpi" style="border-top: 2px solid var(--purple)">
+    <div class="kpi" style="border-top:2px solid var(--blue)" data-kpi='{"Global": {"val": "32,00 %", "ecart": "+1,7 %"}, "ESEIS": {"val": "32,00 %", "ecart": "+7,5 %"}, "ESEIS Cleaning": {"val": "32,00 %", "ecart": "+7,5 %"}, "ESEIS Pest Control": {"val": "32,00 %", "ecart": "+7,5 %"}, "ALS": {"val": "35,00 %", "ecart": "+7,5 %"}, "Café Coton": {"val": "29,00 %", "ecart": "+7,5 %"}, "ESEIS Travaux": {"val": "32,00 %", "ecart": "+7,5 %"}}'>
       <div class="kpi-label">Taux de transformation</div>
-      <div class="kpi-value">0.191</div>
-      <div class="kpi-delta dn">▼ -0,6%</div>
+      <div class="kpi-value">32,00 %</div>
+      <div class="kpi-delta up">▲ +1,7 %</div>
     </div>
+    <div class="kpi" style="border-top:2px solid var(--amber)" data-kpi='{"Global": {"val": "24,17 %", "ecart": "+10,6 %"}, "ESEIS": {"val": "24,00 %", "ecart": "+7,5 %"}, "ESEIS Cleaning": {"val": "24,00 %", "ecart": "+7,5 %"}, "ESEIS Pest Control": {"val": "24,00 %", "ecart": "+7,5 %"}, "ALS": {"val": "22,00 %", "ecart": "+7,5 %"}, "Café Coton": {"val": "27,00 %", "ecart": "+7,5 %"}, "ESEIS Travaux": {"val": "24,00 %", "ecart": "+7,5 %"}}'>
+      <div class="kpi-label">Marge brute</div>
+      <div class="kpi-value">24,17 %</div>
+      <div class="kpi-delta up">▲ +10,6 %</div>
+    </div>
+    <div class="kpi" style="border-top:2px solid var(--purple)" data-kpi='{"Global": {"val": "388 nb", "ecart": "+1 041,2 %"}, "ESEIS": {"val": "87 nb", "ecart": "+10,1 %"}, "ESEIS Cleaning": {"val": "87 nb", "ecart": "+10,1 %"}, "ESEIS Pest Control": {"val": "87 nb", "ecart": "+10,1 %"}, "ALS": {"val": "28 nb", "ecart": "+12,0 %"}, "Café Coton": {"val": "12 nb", "ecart": "+9,1 %"}, "ESEIS Travaux": {"val": "87 nb", "ecart": "+10,1 %"}}'>
+      <div class="kpi-label">Effectif total</div>
+      <div class="kpi-value">388 nb</div>
+      <div class="kpi-delta up">▲ +1 041,2 %</div>
+    </div>
+    <script>
+    (function(){
+      function switchEntity(name){
+        document.querySelectorAll('.kpi[data-kpi]').forEach(function(card){
+          var d=JSON.parse(card.dataset.kpi);
+          var e=d[name]||d['Global'];
+          card.querySelector('.kpi-value').textContent=e.val;
+          var el=card.querySelector('.kpi-delta');
+          var s=e.ecart;
+          var a=s.includes('+')?'▲':s.includes('-')?'▼':'';
+          el.textContent=a?a+' '+s:s;
+          el.className='kpi-delta '+(s.includes('+')?'up':s.includes('-')?'dn':'');
+        });
+      }
+      document.querySelectorAll('.filter-btn').forEach(function(btn){
+        btn.addEventListener('click',function(){
+          document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});
+          btn.classList.add('active');
+          switchEntity(btn.textContent.trim());
+        });
+      });
+    })();
+    </script>
     <!-- KPI-END -->
     </div>
 
