@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cartographie des processus — BCR-i</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1b2733; --ink-soft:#51616f; --paper:#f2f4f6; --card:#ffffff; --line:#d8dee4;
+  --mgmt:#b7791f; --mgmt-bg:#fdf6e3; --mgmt-line:#e3c47a;
+  --real:#1f5f8b; --real-bg:#e9f2f8; --real-line:#9dc2da;
+  --supp:#2f7d4f; --supp-bg:#eaf5ee; --supp-line:#9ccfae;
+  --accent:#1f5f8b; --danger:#b3372f; --ok:#2f7d4f;
+  --radius:10px; --shadow:0 2px 10px rgba(27,39,51,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Public Sans',system-ui,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh}
+button{font-family:inherit;cursor:pointer}
+h1,h2,h3,.display{font-family:'Archivo',sans-serif}
+
+/* ===== Header ===== */
+header{background:var(--ink);color:#fff;padding:18px 28px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+header .brand{display:flex;flex-direction:column}
+header .brand .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#9fb2c2}
+header h1{font-size:22px;font-weight:700;letter-spacing:.01em}
+header .spacer{flex:1}
+.hbtn{background:transparent;border:1px solid #4a5a68;color:#dbe4ec;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;transition:.15s}
+.hbtn:hover{background:#2b3947;border-color:#6b7d8d}
+.hbtn.primary{background:#fff;color:var(--ink);border-color:#fff}
+.hbtn.primary:hover{background:#e6ecf1}
+.hbtn.editing{background:var(--mgmt);border-color:var(--mgmt);color:#fff}
+#saveState{font-size:12px;color:#9fb2c2;min-width:110px;text-align:right}
+
+/* ===== Cartography ===== */
+.map-wrap{max-width:1240px;margin:0 auto;padding:26px 24px 60px}
+.map-title{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+.map-title h2{font-size:17px;font-weight:700}
+.map-title span{font-size:13px;color:var(--ink-soft)}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--ink-soft);margin-bottom:16px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+.carto{display:grid;grid-template-columns:150px 1fr 150px;gap:14px;align-items:stretch}
+.side{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 12px;box-shadow:var(--shadow)}
+.side .arrow{font-size:26px;color:var(--accent);margin:10px 0}
+.side p{font-size:13px;font-weight:600;line-height:1.35}
+.side small{display:block;margin-top:8px;font-size:11px;color:var(--ink-soft);font-weight:400}
+.bands{display:flex;flex-direction:column;gap:14px}
+.band{border-radius:var(--radius);padding:14px 16px 16px;border:1px solid;position:relative}
+.band.M{background:var(--mgmt-bg);border-color:var(--mgmt-line)}
+.band.R{background:var(--real-bg);border-color:var(--real-line)}
+.band.S{background:var(--supp-bg);border-color:var(--supp-line)}
+.band-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.band-head h3{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+.band.M .band-head h3{color:var(--mgmt)} .band.R .band-head h3{color:var(--real)} .band.S .band-head h3{color:var(--supp)}
+.band-head .add-proc{margin-left:auto;display:none;background:#fff;border:1px dashed currentColor;border-radius:7px;font-size:12px;font-weight:600;padding:4px 10px}
+.band.M .add-proc{color:var(--mgmt)} .band.R .add-proc{color:var(--real)} .band.S .add-proc{color:var(--supp)}
+body.edit .band-head .add-proc{display:inline-block}
+.proc-row{display:flex;gap:12px;flex-wrap:wrap;align-items:stretch}
+.proc-card{flex:1 1 180px;min-width:180px;max-width:290px;background:var(--card);border:1px solid var(--line);border-left:5px solid;border-radius:9px;padding:12px 14px;box-shadow:var(--shadow);text-align:left;transition:.15s;position:relative}
+.proc-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(27,39,51,.14)}
+.band.M .proc-card{border-left-color:var(--mgmt)} .band.R .proc-card{border-left-color:var(--real)} .band.S .proc-card{border-left-color:var(--supp)}
+.proc-card .code{font-family:'Archivo';font-weight:800;font-size:15px}
+.band.M .code{color:var(--mgmt)} .band.R .code{color:var(--real)} .band.S .code{color:var(--supp)}
+.proc-card .nom{font-size:13.5px;font-weight:600;line-height:1.3;margin-top:3px}
+.proc-card .pilote{font-size:11.5px;color:var(--ink-soft);margin-top:7px}
+.proc-card .badges{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.proc-card .badge{font-size:10.5px;background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:2px 8px;color:var(--ink-soft)}
+.flow-arrow{align-self:center;color:var(--real);font-size:20px;font-weight:700;user-select:none}
+@media(max-width:960px){.carto{grid-template-columns:1fr}.side{flex-direction:row;gap:14px}.side .arrow{transform:rotate(90deg);margin:0}.flow-arrow{display:none}}
+
+/* ===== Drawer (fiche processus) ===== */
+#overlay{position:fixed;inset:0;background:rgba(20,30,40,.45);opacity:0;pointer-events:none;transition:.2s;z-index:40}
+#overlay.open{opacity:1;pointer-events:auto}
+#drawer{position:fixed;top:0;right:0;height:100%;width:min(760px,100%);background:var(--paper);z-index:50;transform:translateX(102%);transition:transform .25s ease;display:flex;flex-direction:column;box-shadow:-8px 0 30px rgba(0,0,0,.2)}
+#drawer.open{transform:translateX(0)}
+.d-head{padding:20px 26px 16px;color:#fff;display:flex;gap:14px;align-items:flex-start}
+.d-head.M{background:var(--mgmt)} .d-head.R{background:var(--real)} .d-head.S{background:var(--supp)}
+.d-head .code{font-family:'Archivo';font-weight:800;font-size:26px;line-height:1}
+.d-head .titlebox{flex:1}
+.d-head h2{font-size:19px;font-weight:700;line-height:1.25}
+.d-head .meta{font-size:12px;opacity:.85;margin-top:5px}
+.d-close{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:8px;width:34px;height:34px;font-size:17px;flex-shrink:0}
+.d-close:hover{background:rgba(255,255,255,.3)}
+.d-body{flex:1;overflow-y:auto;padding:20px 26px 40px}
+.d-actions{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.d-actions .del-proc{display:none;background:#fff;color:var(--danger);border:1px solid var(--danger);border-radius:8px;padding:7px 13px;font-size:12.5px;font-weight:600}
+body.edit .d-actions .del-proc{display:inline-block}
+
+.section{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:16px;overflow:hidden}
+.section>h3{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--ink-soft);padding:12px 16px 10px;border-bottom:1px solid var(--line);background:#fafbfc;display:flex;align-items:center;gap:8px}
+.section .content{padding:14px 16px}
+.identgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 18px}
+.identgrid .field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin-bottom:3px}
+.identgrid .field .val{font-size:13.5px;font-weight:500}
+ul.simple{list-style:none}
+ul.simple li{position:relative;padding:5px 0 5px 18px;font-size:13.5px;line-height:1.45;border-bottom:1px dashed #edf0f3}
+ul.simple li:last-child{border-bottom:none}
+ul.simple li::before{content:"";position:absolute;left:2px;top:12px;width:7px;height:7px;border-radius:2px;background:var(--accent);opacity:.55}
+.threecol{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.threecol .col h4{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.threecol .col:nth-child(1) h4{color:var(--real)} .threecol .col:nth-child(2) h4{color:var(--mgmt)} .threecol .col:nth-child(3) h4{color:var(--supp)}
+.threecol ul.simple li{font-size:12.5px;padding:4px 0 4px 14px}
+@media(max-width:640px){.threecol{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft);padding:6px 8px;border-bottom:2px solid var(--line);background:#fafbfc}
+td{padding:7px 8px;border-bottom:1px solid #edf0f3;vertical-align:top;line-height:1.4}
+.risk{border:1px solid var(--line);border-left:4px solid var(--danger);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:#fff}
+.risk.majeur{background:#fdf3f2}
+.risk .r-title{font-size:13px;font-weight:700;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.risk .lvl{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:12px;padding:2px 8px;background:var(--danger);color:#fff}
+.risk .lvl.std{background:#8a97a3}
+.risk .tc{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;font-size:12.5px}
+.risk .tc b{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:2px}
+@media(max-width:560px){.risk .tc{grid-template-columns:1fr}}
+.interaction{display:grid;grid-template-columns:190px 1fr;gap:10px;padding:8px 0;border-bottom:1px dashed #edf0f3;font-size:13px}
+.interaction:last-child{border-bottom:none}
+.interaction .p{font-weight:700;color:var(--accent)}
+@media(max-width:560px){.interaction{grid-template-columns:1fr}}
+
+/* ===== Logigramme ===== */
+.logi{display:flex;flex-direction:column;align-items:center;padding:6px 0}
+.logi-step{position:relative;width:min(430px,100%);display:flex;flex-direction:column;align-items:center}
+.logi-node{position:relative;width:100%;text-align:center;font-size:13px;line-height:1.35}
+.logi-node .lbl{display:block}
+.logi-node.debut .box,.logi-node.fin .box{background:var(--ink);color:#fff;border-radius:999px;padding:10px 22px;font-weight:700;display:inline-block;min-width:150px}
+.logi-node.etape .box{background:#fff;border:1.5px solid var(--accent);border-radius:8px;padding:11px 14px;box-shadow:var(--shadow)}
+.logi-node.document .box{background:#fff;border:1.5px dashed var(--ink-soft);border-radius:8px 8px 14px 3px;padding:11px 14px}
+.logi-node.document .box::before{content:"📄 ";opacity:.7}
+.logi-node.decision .box{background:var(--mgmt-bg);border:1.5px solid var(--mgmt);padding:22px 30px;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);width:min(340px,100%);margin:0 auto;font-weight:600}
+.logi-resp{position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);font-size:10.5px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:3px 9px;color:var(--ink-soft);white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis}
+.logi-non{margin-top:5px;font-size:11.5px;color:var(--danger);background:#fdf3f2;border:1px dashed #e4b4b0;border-radius:7px;padding:4px 10px;max-width:100%}
+.logi-non b{font-weight:700}
+.logi-oui{font-size:10.5px;font-weight:700;color:var(--supp);margin-top:3px;letter-spacing:.06em}
+.logi-arrow{color:var(--ink-soft);font-size:17px;line-height:1;padding:4px 0}
+.logi-ctrl{display:none;position:absolute;right:calc(100% + 8px);top:50%;transform:translateY(-50%);flex-direction:column;gap:2px}
+body.edit .logi-ctrl{display:flex}
+.logi-ctrl button{background:#fff;border:1px solid var(--line);border-radius:6px;font-size:11px;width:24px;height:22px;line-height:1;color:var(--ink-soft)}
+.logi-ctrl button:hover{border-color:var(--accent);color:var(--accent)}
+.logi-ctrl button.del:hover{border-color:var(--danger);color:var(--danger)}
+.logi-addbar{display:none;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap;justify-content:center}
+body.edit .logi-addbar{display:flex}
+.logi-addbar select{padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:12.5px}
+.logi-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ink-soft);margin-bottom:14px}
+.logi-legend span{display:inline-flex;align-items:center;gap:5px}
+.logi-legend i{display:inline-block;width:14px;height:10px}
+.logi-legend .l-pill{background:var(--ink);border-radius:99px}
+.logi-legend .l-rect{background:#fff;border:1.5px solid var(--accent);border-radius:2px}
+.logi-legend .l-dia{background:var(--mgmt-bg);border:1.5px solid var(--mgmt);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.logi-legend .l-doc{background:#fff;border:1.5px dashed var(--ink-soft)}
+@media(max-width:700px){.logi-resp{position:static;transform:none;display:inline-block;margin-top:4px}.logi-ctrl{position:static;transform:none;flex-direction:row;margin-bottom:4px}}
+
+/* ===== Matrice des flux ===== */
+.matrix-panel{margin-top:30px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.matrix-panel>.mx-head{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;user-select:none}
+.matrix-panel>.mx-head h2{font-size:15px;font-weight:700}
+.matrix-panel>.mx-head .mx-alert{font-size:12px;font-weight:600;border-radius:14px;padding:3px 11px}
+.mx-alert.warn{background:#fdf0e4;color:#b3641f;border:1px solid #ecc9a3}
+.mx-alert.ok{background:#eaf5ee;color:var(--ok);border:1px solid #b7dcc4}
+.matrix-panel>.mx-head .chev{margin-left:auto;color:var(--ink-soft);transition:.2s}
+.matrix-panel.open .chev{transform:rotate(180deg)}
+.mx-body{display:none;padding:6px 18px 20px}
+.matrix-panel.open .mx-body{display:block}
+.mx-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-soft);margin:8px 0 14px}
+.mx-legend i{display:inline-block;width:13px;height:13px;border-radius:3px;vertical-align:-2px;margin-right:5px}
+.mx-scroll{overflow-x:auto}
+table.mx{border-collapse:separate;border-spacing:3px;font-size:11.5px}
+table.mx th{background:none;border:none;padding:5px 7px;font-size:10.5px;color:var(--ink-soft)}
+table.mx th.rowh{text-align:right;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+table.mx td{border:none;padding:0}
+.mx-cell{width:52px;height:38px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;border:1px solid transparent}
+.mx-cell.self{background:#eef1f4;color:#c4ccd3}
+.mx-cell.none{background:#fafbfc;border-color:#eef1f4}
+.mx-cell.both{background:#eaf5ee;color:var(--ok);border-color:#b7dcc4;cursor:help}
+.mx-cell.oneway{background:#fdf0e4;color:#b3641f;border-color:#ecc9a3;cursor:help}
+.mx-issues{margin-top:14px;font-size:12.5px}
+.mx-issues li{padding:4px 0 4px 16px;position:relative;line-height:1.4}
+.mx-issues li::before{content:"⚠";position:absolute;left:0;color:#b3641f}
+.mx-note{font-size:11.5px;color:var(--ink-soft);margin-top:12px}
+.mx-tabs{display:flex;gap:6px;margin-bottom:4px}
+.mx-tab{background:#fafbfc;border:1px solid var(--line);border-radius:8px 8px 0 0;padding:7px 16px;font-size:12.5px;font-weight:600;color:var(--ink-soft)}
+.mx-tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.mx-cell.sel{outline:2px solid var(--accent);outline-offset:1px}
+#mxFlow svg{width:100%;height:auto;display:block}
+.fl-link{fill:none;stroke-width:1.6;cursor:pointer;transition:stroke-width .12s, opacity .12s}
+.fl-link.both{stroke:#7cbf95}
+.fl-link.oneway{stroke:#e0a161;stroke-dasharray:6 4}
+.fl-link:hover,.fl-link.sel{stroke-width:4}
+.fl-link.dim{opacity:.13}
+.fl-node{cursor:pointer}
+.fl-node rect{stroke-width:1.5;rx:9}
+.fl-node.M rect{fill:var(--mgmt-bg);stroke:var(--mgmt)}
+.fl-node.R rect{fill:var(--real-bg);stroke:var(--real)}
+.fl-node.S rect{fill:var(--supp-bg);stroke:var(--supp)}
+.fl-node.sel rect{stroke-width:3}
+.fl-node.dim{opacity:.3}
+.fl-node text{font-family:'Archivo',sans-serif;pointer-events:none}
+.fl-node .fl-code{font-weight:800;font-size:15px}
+.fl-node.M .fl-code{fill:var(--mgmt)} .fl-node.R .fl-code{fill:var(--real)} .fl-node.S .fl-code{fill:var(--supp)}
+.fl-node .fl-name{font-family:'Public Sans',sans-serif;font-size:9.5px;fill:var(--ink-soft)}
+.fl-hint{font-size:11.5px;color:var(--ink-soft);text-align:center;margin-top:6px}
+#mxDetail{margin-top:14px}
+.mxd-card{border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+.mxd-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fafbfc;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.mxd-head .pair{font-family:'Archivo';font-weight:800;font-size:15px}
+.mxd-head .mxd-open{margin-left:auto;display:flex;gap:6px}
+.mxd-open button{background:#fff;border:1px solid var(--line);border-radius:7px;padding:5px 11px;font-size:11.5px;font-weight:600;color:var(--accent)}
+.mxd-open button:hover{border-color:var(--accent)}
+.mxd-flow{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:11px 14px;font-size:13px;border-bottom:1px dashed #edf0f3;align-items:start}
+.mxd-flow:last-child{border-bottom:none}
+.mxd-dir{font-family:'Archivo';font-weight:700;font-size:13px;white-space:nowrap}
+.mxd-dir .ar{color:var(--accent)}
+.mxd-flow.absent .mxd-dir .ar{color:#b3641f}
+.mxd-flow.absent{background:#fdf6ef}
+.mxd-flow .missing{color:#b3641f;font-style:italic}
+@media(max-width:560px){.mxd-flow{grid-template-columns:1fr}}
+
+/* ===== Edit mode ===== */
+[contenteditable="true"]{outline:none;border-radius:4px;transition:background .12s}
+body.edit [contenteditable="true"]{background:#fff8e6;box-shadow:inset 0 0 0 1px #eddfb0;padding:1px 4px;cursor:text}
+body.edit [contenteditable="true"]:focus{background:#fff;box-shadow:inset 0 0 0 2px var(--mgmt)}
+.mini{display:none;background:none;border:none;color:var(--danger);font-size:14px;line-height:1;padding:2px 5px;border-radius:5px}
+.mini:hover{background:#fbe9e7}
+body.edit .mini{display:inline-block}
+.addline{display:none;background:none;border:1px dashed var(--line);color:var(--ink-soft);border-radius:7px;font-size:12px;font-weight:600;padding:5px 12px;margin-top:8px}
+.addline:hover{border-color:var(--accent);color:var(--accent)}
+body.edit .addline{display:inline-block}
+ul.simple li{display:flex;align-items:flex-start;gap:4px}
+ul.simple li span{flex:1}
+td .mini{vertical-align:middle}
+.edit-banner{display:none;background:var(--mgmt);color:#fff;text-align:center;font-size:13px;font-weight:600;padding:7px}
+body.edit .edit-banner{display:block}
+dialog{border:none;border-radius:12px;padding:0;max-width:420px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(20,30,40,.5)}
+dialog .dlg{padding:22px}
+dialog h3{font-size:16px;margin-bottom:14px}
+dialog label{display:block;font-size:12px;font-weight:600;margin:10px 0 4px;color:var(--ink-soft)}
+dialog input,dialog select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:13.5px}
+dialog .row{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+dialog .row button{border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;border:1px solid var(--line);background:#fff}
+dialog .row button.go{background:var(--accent);color:#fff;border-color:var(--accent)}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;font-size:13px;padding:10px 18px;border-radius:10px;transition:.25s;z-index:99;opacity:0}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="eyebrow">Système de management QSSE</span>
+    <h1>Cartographie des processus — <span id="siteName" contenteditable="false">BCR-i</span></h1>
+  </div>
+  <div class="spacer"></div>
+  <span id="saveState"></span>
+  <button class="hbtn" id="btnExport">Exporter JSON</button>
+  <button class="hbtn" id="btnImport">Importer</button>
+  <input type="file" id="fileImport" accept=".json" style="display:none">
+  <button class="hbtn" id="btnReset">Réinitialiser (base ESEIS)</button>
+  <button class="hbtn primary" id="btnEdit">✏️ Mode édition</button>
+</header>
+<div class="edit-banner">Mode édition actif — cliquez sur un texte pour le modifier. Les changements sont enregistrés automatiquement.</div>
+
+<div class="map-wrap">
+  <div class="map-title"><h2>Vue d'ensemble</h2><span>Cliquez sur un processus pour ouvrir sa fiche d'identité</span></div>
+  <div class="legend">
+    <span><i style="background:var(--mgmt)"></i>Processus de management</span>
+    <span><i style="background:var(--real)"></i>Processus de réalisation</span>
+    <span><i style="background:var(--supp)"></i>Processus support</span>
+  </div>
+  <div class="carto">
+    <div class="side">
+      <p>Besoins et attentes des parties intéressées</p>
+      <div class="arrow">➜</div>
+      <small>Clients · Collaborateurs · Fournisseurs · Réglementation</small>
+    </div>
+    <div class="bands" id="bands"></div>
+    <div class="side">
+      <div class="arrow">➜</div>
+      <p>Satisfaction des parties intéressées</p>
+      <small>CNPS · ENPS · Conformité · Rentabilité</small>
+    </div>
+  </div>
+
+  <div class="matrix-panel" id="matrixPanel">
+    <div class="mx-head" id="mxToggle">
+      <h2>Matrice des flux inter-processus</h2>
+      <span class="mx-alert" id="mxAlert"></span>
+      <span class="chev">▼</span>
+    </div>
+    <div class="mx-body">
+      <div class="mx-tabs">
+        <button class="mx-tab active" data-view="grid">Matrice</button>
+        <button class="mx-tab" data-view="flow">Schéma des flux</button>
+      </div>
+      <div class="mx-legend">
+        <span><i style="background:#eaf5ee;border:1px solid #b7dcc4"></i>Flux réciproque (déclaré des deux côtés)</span>
+        <span><i style="background:#fdf0e4;border:1px solid #ecc9a3"></i>Flux non réciproque (déclaré d'un seul côté)</span>
+        <span><i style="background:#fafbfc;border:1px solid #eef1f4"></i>Aucun flux déclaré</span>
+        <span style="font-weight:600;color:var(--accent)">Cliquez sur une cellule ou un lien pour voir les données échangées</span>
+      </div>
+      <div class="mx-scroll" id="mxGrid"></div>
+      <div id="mxFlow" style="display:none"></div>
+      <div id="mxDetail"></div>
+      <ul class="mx-issues" id="mxIssues"></ul>
+      <p class="mx-note">Lecture de la matrice : la ligne déclare, la colonne est citée. La matrice et le schéma se mettent à jour automatiquement lorsque vous modifiez les interactions dans les fiches.</p>
+    </div>
+  </div>
+</div>
+
+<div id="overlay"></div>
+<aside id="drawer" aria-hidden="true">
+  <div class="d-head" id="dHead">
+    <div class="code" id="dCode"></div>
+    <div class="titlebox">
+      <h2 id="dTitle"></h2>
+      <div class="meta" id="dMeta"></div>
+    </div>
+    <button class="d-close" id="dClose" title="Fermer">✕</button>
+  </div>
+  <div class="d-body" id="dBody"></div>
+</aside>
+
+<dialog id="dlgNew">
+  <div class="dlg">
+    <h3>Nouveau processus</h3>
+    <label>Code (ex. R5, S3…)</label><input id="npCode" placeholder="R5">
+    <label>Nom du processus</label><input id="npNom" placeholder="Nom du processus">
+    <label>Famille</label>
+    <select id="npFam">
+      <option value="M">Management</option>
+      <option value="R">Réalisation</option>
+      <option value="S">Support</option>
+    </select>
+    <label>Pilote</label><input id="npPilote" placeholder="Prénom NOM – Fonction">
+    <div class="row">
+      <button id="npCancel">Annuler</button>
+      <button class="go" id="npOk">Créer</button>
+    </div>
+  </div>
+</dialog>
+
+<div id="toast"></div>
+
+<script>
+/* ================= DONNÉES DE BASE (issues des fiches ESEIS, déployées pour BCR-i) ================= */
+const BASE_DATA = {
+  site: "BCR-i",
+  processes: [
+  {
+    id:"M1", code:"M1", fam:"M", nom:"Management, stratégie, analyse et amélioration",
+    ref:"QSE-DOC-019", indice:"02", dateMaj:"10/12/2025",
+    pilote:"Jordan BIESSY – Directeur Général", redacteur:"Charlotte ROUQUETTE – Responsable QHSE", approbateur:"Jordan BIESSY – Directeur Général",
+    finalites:[
+      "Définir la vision, la mission et les objectifs stratégiques de l'organisation",
+      "Satisfaire les clients internes et externes",
+      "Respecter les exigences légales et réglementaires",
+      "Pérenniser les marchés actuels et développer de nouveaux contrats",
+      "Maintenir un bon niveau de rentabilité",
+      "Piloter la démarche QSE en déclinant la politique et les objectifs définis par la Direction Générale",
+      "Concevoir et améliorer le SMQSE",
+      "Assurer la diffusion et le suivi d'application du SMQSE auprès de l'ensemble des services",
+      "Animer la démarche d'amélioration continue"
+    ],
+    indicateurs:[
+      {nom:"CA conforme au budget",obj:"100% du budget",outil:"Outil de gestion ; compta",resp:"Resp. comptabilité et Contrôleur de gestion",freq:"Mensuelle"},
+      {nom:"Marge nette conforme au budget",obj:"100% du budget",outil:"Outil de gestion ; compta",resp:"DG et Contrôleur de gestion",freq:"Mensuelle"},
+      {nom:"Taux de satisfaction clients CNPS",obj:"> 8",outil:"Enquête annuelle NPS",resp:"Téléprospection et QHSE",freq:"Annuelle"},
+      {nom:"Taux de rétention clients",obj:"> 94%",outil:"Outil de gestion ; compta",resp:"DC",freq:"Trimestrielle"},
+      {nom:"Taux eNPS satisfaction collaborateurs",obj:"> 8,5",outil:"Enquête collaborateurs",resp:"QHSE",freq:"Annuelle"},
+      {nom:"Taux TF / TG",obj:"TF < 4 · TG < 0,60",outil:"Fichier Excel + compte employeur Net-entreprises",resp:"QHSE",freq:"Annuelle + revue mensuelle"},
+      {nom:"Nombre d'accidents environnementaux",obj:"0",outil:"",resp:"",freq:""}
+    ],
+    acteurs:["Président","Directeur Général (DG)","Directeur des Ressources Humaines (DRH)","Directeur commercial","Responsable QHSE","Responsable comptabilité","Contrôleur de gestion","Managers opérationnels : responsables d'affaires, responsables de contrats, chefs d'équipe, référents","Collaborateurs"],
+    entrees:["KPI","Rapport d'audit","Rapport VPO","Revue de compte","Revue de direction","Veille réglementaire"],
+    moyens:["Informatique","Personnel formé et intégré","Formation / sensibilisation","Normes"],
+    sorties:["Satisfaction client – REX","Décisions stratégiques","Politique QHSE"],
+    interactions:[
+      {p:"R1 – Développement commercial",d:"Revue de contrat · Exigences contractuelles : détection des attentes implicites et explicites"},
+      {p:"R2 – Démarrage marché stratégique",d:"Budget · Exigences légales et réglementaires · Parties prenantes pertinentes identifiées · Investissement matériel"},
+      {p:"R3 – Pilotage opérationnel",d:"RMA · Revue de compte · Visites Santé Sécurité Environnement (V2SE) · Revue de contrat · Animation de réunion · Reprise du personnel"},
+      {p:"R4 – Finance",d:"Balance âgée · Plan de facturation · Revue des comptes"},
+      {p:"S1 – Gestion des ressources humaines et des compétences",d:"Fiche de poste / fiche de fonction · Management des équipes au quotidien · Plan de formation"},
+      {p:"S2 – Gestion des achats",d:"Exigences qualité définies pour les achats · Évaluation des fournisseurs stratégiques · Charte achats responsables"}
+    ],
+    risques:[
+      {t:"Frein sur la stratégie de développement par rapport à la concurrence",lvl:"majeur",trait:"Saisir les opportunités de développement sur de nouveaux marchés (FM, multi-technique spécifique)",ctrl:"Développement de nouvelles activités sur un périmètre géographique identifié"},
+      {t:"Évolution de la réglementation",lvl:"std",trait:"Mise en place d'une veille réglementaire avec Red On Line",ctrl:"Outil de veille réglementaire"},
+      {t:"Risque incendie",lvl:"std",trait:"Exercices d'évacuation + organisation (guide file / serre file)",ctrl:"Compte rendu d'exercice"},
+      {t:"Taux de satisfaction client en baisse",lvl:"std",trait:"Enquête CNPS",ctrl:"Résultats présentés en revue opérationnelle – actions par client, présentation en revue de direction"}
+    ],
+    opportunites:["Développer et améliorer la communication interne","Recherche d'innovation dans le réseau métier de services","Maintien des certifications ISO 9001, 45001, 14001","Devenir société à mission","Amélioration de l'évaluation Ecovadis","Développer de nouveaux services associés chez les clients existants","Pérenniser la BCR-i Académie","Garantir l'image de marque via le référentiel client","Respecter les exigences contractuelles, légales et réglementaires"]
+  },
+  {
+    id:"R1", code:"R1", fam:"R", nom:"Développement commercial",
+    ref:"QSE-DOC-020", indice:"02", dateMaj:"23/09/2025",
+    pilote:"Thomas LEYNAUD – Directeur Commercial", redacteur:"Charlotte ROUQUETTE – Responsable QHSE", approbateur:"Thomas LEYNAUD – Directeur Commercial",
+    finalites:[
+      "Être consulté par des prospects privés préalablement qualifiés par les équipes commerciales",
+      "Être référencé par les grands donneurs d'ordre privés et publics qualifiés par la direction commerciale",
+      "Gagner de nouvelles affaires avec une réponse technique et commerciale de qualité, conforme aux besoins explicites et implicites du client",
+      "Accroître la part de marché et la visibilité auprès des entreprises de taille significative, pérenniser les contrats",
+      "Centraliser le pilotage de la force commerciale au siège (marchés publics et privés), maintenir et diffuser les offres génériques, spécifiques métiers et outils marketing",
+      "Prendre en compte les veilles réglementaires (marchés, concurrence, techniques / innovations)",
+      "Élaborer des plaquettes commerciales adaptées"
+    ],
+    indicateurs:[
+      {nom:"CA moyen signé",obj:"100 000 € minimum annuel",outil:"Fichier de suivi des AO",resp:"Chef de projet et ingénieure commerciale",freq:"Hebdomadaire"},
+      {nom:"CA moyen par consultation",obj:"100 000 € minimum annuel",outil:"Fichier de suivi des AO",resp:"Chef de projet et ingénieure commerciale",freq:"Hebdomadaire"},
+      {nom:"Taux de transformation",obj:"> 20%",outil:"Fichier de suivi des AO",resp:"Directeur Commercial",freq:"Hebdomadaire"},
+      {nom:"Suivi pipe annuel",obj:"CA > 45 M€",outil:"Fichier de suivi des AO",resp:"Directeur Commercial",freq:"Hebdomadaire"}
+    ],
+    acteurs:["Président","Directeur Général (DG)","Chef de projets appels d'offres et ingénieure commerciale","Service QHSE","Managers opérationnels : responsable d'affaires, responsable de contrat, chef d'équipe, référent","Collaborateurs"],
+    entrees:["Base clients","Réunion hebdomadaire (point commerce du lundi matin)","Cahier des charges","Dossier d'AO","Réseaux (clubs)"],
+    moyens:["Informatique","Personnel formé et intégré","Service commercial","Services supports","Service opérationnel"],
+    sorties:["Revue de contrat","Mémoire technique","Offres financières","Plaquette commerciale","Soutenance de projet","Publicité"],
+    interactions:[
+      {p:"M1 – Management, stratégie, analyse et amélioration",d:"Budget · Organisation en place · Exigences légales et réglementaires · Implication QHSE · Parties intéressées pertinentes identifiées"},
+      {p:"R2 – Démarrage marché stratégique",d:"Taux de satisfaction clients au démarrage · Évaluation des fournisseurs / prestataires · Plan d'actions d'implémentation de nouveaux contrats"},
+      {p:"R3 – Pilotage opérationnel",d:"Taux de satisfaction · Revue de contrat · Cahier des charges et son évolution durant le partenariat · Connaissance des sensibilités et attentes clients"},
+      {p:"R4 – Finance",d:"Conditions de facturation et de paiement négociées au contrat · Revue de contrat · Solvabilité des prospects"},
+      {p:"S1 – Gestion des ressources humaines et des compétences",d:"Fiche de poste / fiche de fonction · Identification des ressources liées au développement · Recrutement des nouveaux talents · Plan de formation"},
+      {p:"S2 – Gestion des achats",d:"Catalogue fournisseurs pour le chiffrage des offres · Évaluation des fournisseurs / prestataires"}
+    ],
+    risques:[
+      {t:"Vente d'une prestation irréalisable",lvl:"majeur",trait:"Revue de contrat de prestation",ctrl:"GO/NOGO"},
+      {t:"Présence hétérogène sur certains territoires",lvl:"std",trait:"Vigilance sur les contrats nationaux selon les zones géographiques · Développement géographique en fonction du volume",ctrl:"GO/NOGO · Mapping"},
+      {t:"Concurrence agressive sur les tarifs",lvl:"std",trait:"Démontrer la différenciation face aux offres low-cost · Cibler des prospects où le prix n'est pas le critère unique",ctrl:"Benchmark · Analyse de chaque attribution vs concurrent · Rapport qualité/prix"},
+      {t:"Risque social",lvl:"std",trait:"Étude des équipes existantes · Retour d'expérience",ctrl:"GO/NOGO"}
+    ],
+    opportunites:["Volonté des clients de changer régulièrement de fournisseurs","Externalisation croissante des services généraux vers le multiservice","Identifier les besoins explicites et implicites d'un futur prospect","Développer des parts de marché en lien avec la stratégie","Développer les secteurs stratégiques : 3D, travaux, nettoyage, sécurité","Atteindre l'objectif budgétaire des nouveaux contrats en croissance organique"]
+  },
+  {
+    id:"R2", code:"R2", fam:"R", nom:"Démarrage marché stratégique",
+    ref:"QSE-DOC-021", indice:"02", dateMaj:"01/09/2025",
+    pilote:"Benoit RIERA – Directeur des Projets", redacteur:"Charlotte ROUQUETTE – Responsable QHSE", approbateur:"Benoit RIERA – Directeur de projets",
+    finalites:[
+      "Garantir le respect des engagements contractuels",
+      "Rassurer le client et le satisfaire dès le début de la collaboration",
+      "Assurer une passation efficace d'affaire entre Commerce et Opérationnel",
+      "Maîtriser les risques liés à la prestation",
+      "Intégrer les nouveaux collaborateurs dans la paix sociale",
+      "Vérifier le respect des exigences légales et réglementaires",
+      "S'assurer des conditions de travail et environnementales des collaborateurs"
+    ],
+    indicateurs:[
+      {nom:"Taux de satisfaction CNPS année n+1",obj:"100% de réponse",outil:"Fiche enquête de satisfaction",resp:"Pilote du processus",freq:"Annuelle"},
+      {nom:"Plan de prévention signé au démarrage",obj:"100%",outil:"Tableau de contrôle",resp:"Pilote du processus",freq:"Ponctuelle"},
+      {nom:"Accueil des nouveaux arrivants",obj:"100% des salariés",outil:"Émargement",resp:"RRH · Responsable de contrat · QHSE",freq:"Ponctuelle"},
+      {nom:"Marge brute chantier à M+3",obj:"22%",outil:"Analytique financier",resp:"Contrôle de gestion",freq:"Ponctuelle"}
+    ],
+    acteurs:["Président","Directeur Général","Responsable comptable","Contrôleur de gestion","Directeur commercial","Service QHSE","Managers opérationnels : responsable d'affaires, responsable de contrat, chef d'équipe, référent","Directeur des Ressources Humaines et Responsable RH"],
+    entrees:["Base clients","CR réunion hebdomadaire","Cahier des charges – contrat cadre","Dossier d'AO","Catalogue des fournisseurs","Dossiers du personnel"],
+    moyens:["Informatique","Personnel formé et intégré","Service commercial et exploitation","Services supports (RH, QHSE, achats, etc.)"],
+    sorties:["Plan directeur d'implémentation","Classeurs de site","Premiers contrôles","Rentabilité chantier","Satisfaction client CNPS – REX"],
+    interactions:[
+      {p:"M1 – Management, stratégie, analyse et amélioration",d:"Budget · Exigences légales et réglementaires · Parties prenantes pertinentes identifiées · Investissement matériel"},
+      {p:"R1 – Développement commercial",d:"Revue de contrat, compte d'exploitation, clauses contractuelles · Exigences contractuelles : détection des attentes implicites et explicites"},
+      {p:"R3 – Pilotage opérationnel",d:"Reprise du personnel · Gestion des commandes · Revue de contrat · Bascule en exploitation courante"},
+      {p:"R4 – Finance",d:"Ouverture analytique du chantier · Suivi de la marge brute à M+3"},
+      {p:"S1 – Gestion des ressources humaines et des compétences",d:"Fiche de poste / fiche de fonction · Management des équipes au quotidien · Reprise du personnel · Plan de formation"},
+      {p:"S2 – Gestion des achats",d:"Catalogue des fournisseurs · Panel de prestataires pour le démarrage · Commandes d'implémentation"}
+    ],
+    risques:[
+      {t:"Rupture de service",lvl:"majeur",trait:"Mise en place de l'ensemble des moyens pour assurer la continuité de service",ctrl:"Conformité du matériel / produits / consommables · Respect de l'adéquation charge / ressources"},
+      {t:"Attribution tardive du marché par le client (délai < 1 mois)",lvl:"std",trait:"Sensibilisation du client en cours d'AO sur la nécessité d'un mois minimum pour démarrer",ctrl:"Date d'attribution vs date de démarrage"},
+      {t:"Non-maîtrise des exigences du client",lvl:"std",trait:"Passation entre l'équipe commerce et l'équipe implémentation / exploitation",ctrl:"Réunion de revue de contrat · Plan directeur d'implémentation"}
+    ],
+    opportunites:[]
+  },
+  {
+    id:"R3", code:"R3", fam:"R", nom:"Pilotage opérationnel",
+    ref:"QSE-DOC-022", indice:"02", dateMaj:"16/12/2024",
+    pilote:"Jordan BIESSY – Directeur Général", redacteur:"Charlotte ROUQUETTE – Responsable QHSE", approbateur:"Jordan BIESSY – Directeur Général",
+    finalites:[
+      "Garantir le respect des engagements contractuels",
+      "Satisfaire le client",
+      "Maîtriser la rentabilité",
+      "Fidéliser les collaborateurs et animer les équipes au quotidien",
+      "Maîtriser les risques liés à la prestation",
+      "Exprimer les besoins d'achats et d'approvisionnements auprès du processus S2 et en assurer le juste usage",
+      "Exprimer les besoins en recrutement et en compétences auprès du processus S1 et contribuer à la montée en compétences des équipes"
+    ],
+    indicateurs:[
+      {nom:"Marge brute d'exploitation",obj:"Minimum 22% par contrat",outil:"Analytique contrôle de gestion",resp:"Pilote du processus",freq:"Mensuelle"},
+      {nom:"Traitement des réclamations",obj:"100%",outil:"Tableau de contrôle lors des revues opérationnelles",resp:"Resp. contrats + RQHSE",freq:"Hebdomadaire"},
+      {nom:"Taux de fréquence et de gravité des AT",obj:"TF 4 · TG 0,60",outil:"Tableau de suivi Net-entreprises",resp:"RQHSE",freq:"Mensuelle / annuelle"},
+      {nom:"Taux de satisfaction clients CNPS",obj:"> 8",outil:"Enquête annuelle NPS",resp:"Téléprospection et QHSE",freq:"Annuelle"}
+    ],
+    acteurs:["Président","Directeur Général (DG)","Directeur Opérationnel","Responsable financier","Directeur commercial","Service QHSE","Managers opérationnels : responsable d'affaires, responsable de contrat, chefs d'équipe, référents","Collaborateurs"],
+    entrees:["Base contrats","CR réunion hebdomadaire (revue opérationnelle)","Cahier des charges","KPI"],
+    moyens:["Informatique","Personnel formé et intégré","Tableaux de bord","Service commercial","Services supports"],
+    sorties:["RMA (selon exigence client)","Satisfaction client CNPS","Plan de prévention signé","Satisfaction salarié ENPS","Revue des comptes"],
+    interactions:[
+      {p:"M1 – Management, stratégie, analyse et amélioration",d:"Nouveau contrat → nouveaux postes à pourvoir · Nouvelle compétence attendue vs offre technique · Ressources d'implémentation · Reprise de personnel (L1224, convention tripartite…) · Revue de processus · Organisation · Stratégie d'entreprise"},
+      {p:"R1 – Développement commercial",d:"Taux de satisfaction · Revue de contrat · Évolution du cahier des charges durant le partenariat · Connaissance des sensibilités et attentes clients"},
+      {p:"R2 – Démarrage marché stratégique",d:"Réunion pré-ouverture · Revue de contrat · Reprise de personnel · Exigences contractuelles"},
+      {p:"R4 – Finance",d:"Bon d'intervention · Contact client · Revue des comptes"},
+      {p:"S1 – Gestion des ressources humaines et des compétences",d:"Fiche de poste / fiche de fonction · Management des équipes au quotidien · Plan de formation"},
+      {p:"S2 – Gestion des achats",d:"Panel de fournisseurs et/ou prestataires adaptés · Gestion des commandes · Suivi de la performance fournisseurs"}
+    ],
+    risques:[
+      {t:"Perte de client",lvl:"majeur",trait:"Rendez-vous client au moins une fois par an pour mesurer la satisfaction",ctrl:"100% des clients stratégiques visités annuellement (visites sites / RMA / CNPS)"},
+      {t:"Dégradation des marges",lvl:"std",trait:"Identifier les contrats à faible marge lors des revues de comptes",ctrl:"Analytique + plan d'actions par responsable de contrats"},
+      {t:"Manque de compétences, savoir-faire et savoir-être",lvl:"std",trait:"Formation / sensibilisation des agents (processus d'accompagnement)",ctrl:"Évaluation des compétences · Talent review · BCR-i Académie"},
+      {t:"Difficultés RH – attractivité de l'entreprise",lvl:"std",trait:"Sourcer de nouveaux talents",ctrl:"Aide au recrutement via Profilae"}
+    ],
+    opportunites:[]
+  },
+  {
+    id:"R4", code:"R4", fam:"R", nom:"Finance",
+    ref:"QSE-DOC-023", indice:"01", dateMaj:"20/10/2024",
+    pilote:"Samira KAPPELUSCH – Resp. comptabilité · Lorenzo NUNES – Contrôleur de gestion", redacteur:"Charlotte ROUQUETTE – Responsable QHSE", approbateur:"Samira KAPPELUSCH · Lorenzo NUNES",
+    finalites:[
+      "Garantir l'exactitude et la rapidité de la facturation",
+      "Optimiser le délai de recouvrement des créances",
+      "Améliorer la trésorerie et assurer la continuité des flux financiers"
+    ],
+    indicateurs:[
+      {nom:"Taux de créances échues non recouvrées",obj:"< 5% (à valider)",outil:"Balance âgée",resp:"Resp. comptabilité",freq:"Mensuelle"},
+      {nom:"Délai moyen de recouvrement (DSO)",obj:"À définir (ex. < 60 jours)",outil:"Balance âgée / outil comptable",resp:"Resp. comptabilité",freq:"Mensuelle"},
+      {nom:"Délai d'émission des factures clients",obj:"100% avant le 5 du mois (à valider)",outil:"Outil comptable",resp:"Comptabilité",freq:"Mensuelle"},
+      {nom:"Respect des échéances fiscales",obj:"100%",outil:"Calendrier fiscal",resp:"Resp. comptabilité",freq:"Mensuelle"}
+    ],
+    acteurs:["Responsable comptabilité","Contrôleur de gestion","Directeur Général","Managers opérationnels : responsable d'affaires, responsable de contrats, chef d'équipe","Responsable ressources humaines (RH)","Collaborateurs"],
+    entrees:["Bon de commande client","Devis fournisseurs validés","Bons d'intervention","Contrats et conditions de facturation","Factures fournisseurs","Éléments variables de paie (imputation des salaires)"],
+    moyens:["Outil comptable / ERP","Balance âgée (Excel)","Analytique du contrôle de gestion","Calendrier fiscal","Personnel formé : comptabilité et contrôle de gestion"],
+    sorties:["Factures clients émises","Paiements fournisseurs à échéance","Balance âgée à jour","Reporting financier mensuel","Déclarations fiscales","Revue des comptes"],
+    interactions:[
+      {p:"M1 – Management, stratégie, analyse et amélioration",d:"Budget · Exigences légales et réglementaires · Stratégie d'entreprise · KPI · Prise de décision"},
+      {p:"R1 – Développement commercial",d:"Revue de contrat · Conditions de facturation et de paiement négociées au contrat"},
+      {p:"R2 – Démarrage marché stratégique",d:"Ouverture analytique du chantier · Suivi de la marge brute à M+3"},
+      {p:"R3 – Pilotage opérationnel",d:"Bon d'intervention · Revue de contrat · Revue des comptes"},
+      {p:"S1 – Gestion des ressources humaines et des compétences",d:"Imputation des salaires · Éléments variables de paie"},
+      {p:"S2 – Gestion des achats",d:"Budget alloué aux achats · Factures fournisseurs · Rapprochement BC – BL – facture"}
+    ],
+    risques:[
+      {t:"Retard de paiement client / fournisseur",lvl:"majeur",trait:"Contrôle de la conformité du process · Suivi des paiements à échéance",ctrl:"Balance âgée (Excel)"},
+      {t:"Non-conformité légale / obligations fiscales",lvl:"std",trait:"Suivi des paiements",ctrl:"Impots.gouv · Calendrier fiscal"}
+    ],
+    opportunites:["Renforcement des process","Processus de facturation fluide et transparent","Développement de l'ERP"]
+  },
+  {
+    id:"S1", code:"S1", fam:"S", nom:"Gestion des ressources humaines et des compétences",
+    ref:"QSE-DOC-024", indice:"02", dateMaj:"15/01/2026",
+    pilote:"Nicolas THOMAS – Directeur des Ressources Humaines", redacteur:"Charlotte ROUQUETTE – Responsable QHSE", approbateur:"Nicolas THOMAS – DRH",
+    finalites:[
+      "Fiabiliser la gestion administrative des collaborateurs de l'embauche jusqu'à la fin de contrat",
+      "Former les collaborateurs pour maintenir l'employabilité (motivation, fidélisation, santé-sécurité) et développer les compétences",
+      "Accompagner les collaborateurs dans leur évolution de carrière",
+      "Accompagner les agences dans la gestion de leurs ressources humaines",
+      "Assurer le dialogue social"
+    ],
+    indicateurs:[
+      {nom:"Réalisation des formations réglementaires",obj:"100%",outil:"Tableau de suivi des formations · Plan de formation",resp:"RH",freq:"Mensuelle"},
+      {nom:"Nombre d'entretiens professionnels",obj:"100%",outil:"Tableau de suivi des entretiens · ADP (projet)",resp:"RH",freq:"Annuelle"},
+      {nom:"Réclamations paie / bulletins émis",obj:"< 3% d'erreurs de paie",outil:"Tableau de contrôle des anomalies de paie",resp:"RH",freq:"Mensuelle"},
+      {nom:"Tenue de toutes les instances IRP",obj:"100%",outil:"Convocations + comptes rendus",resp:"RH",freq:"Tous les 2 mois"}
+    ],
+    acteurs:["Directeur Général (DG)","Directeur des Ressources Humaines","Service QHSE","Managers opérationnels : responsable d'affaires","Service RH : responsable RH, responsable des relations sociales","PROFILAE : cabinet de recrutement","Collaborateurs","Membres du CSE"],
+    entrees:["Fiche de poste","Budget","Candidatures","Plan de formation","Réglementation"],
+    moyens:["Logiciel de paie","SIRH","Managers","Conseils (avocats, cabinet de recrutement, etc.)","Service RH"],
+    sorties:["Personnel compétent et formé","Satisfaction clients internes","Satisfaction clients externes","Salaires et bulletins","Climat social apaisé","Cartographie des compétences"],
+    interactions:[
+      {p:"M1 – Management, stratégie, analyse et amélioration",d:"Budget · Exigences légales et réglementaires · Stratégie d'entreprise · Reprise de personnel (L1224-1, Annexe 7, convention tripartite…) · Revue de processus"},
+      {p:"R1 – Développement commercial",d:"Revue de contrat · Exigences contractuelles · Nouvelle compétence attendue pour l'offre technique · Ressources nécessaires à l'implémentation d'un nouveau contrat"},
+      {p:"R2 – Démarrage marché stratégique",d:"Dossiers de reprise du personnel en Annexe 7 · Recrutement de personnel"},
+      {p:"R3 – Pilotage opérationnel",d:"Animation de réunion ou sensibilisation · Revue de contrat · Ingénierie sociale · Besoins en recrutement et en compétences"},
+      {p:"R4 – Finance",d:"Imputation des salaires · Éléments variables de paie"},
+      {p:"S2 – Gestion des achats",d:"Conformité sociale des fournisseurs (travail dissimulé) · Référencement des prestataires RH : recrutement, intérim, formation"}
+    ],
+    risques:[
+      {t:"Défaut de formation réglementaire",lvl:"majeur",trait:"Suivi par le service RH pour recyclage",ctrl:"Audit site"},
+      {t:"Embauche de salarié sans autorisation de travail",lvl:"std",trait:"Suivi des validités des cartes de séjour en poste et à l'embauche",ctrl:"Tableau de suivi des cartes de séjour / autorisations de travail"},
+      {t:"Insatisfaction ou perte de marché due à une défaillance de compétence",lvl:"std",trait:"Identification des talents clés et plans de succession · Entretiens professionnels réguliers · Programme de formation",ctrl:"Fiche de pénalités · RMA · Plan de formation · BCR-i Académie · Plan de management · Talent review"},
+      {t:"Affichage obligatoire non mis à jour",lvl:"std",trait:"Communication des MAJ par RH ou QHSE (SharePoint, mail), lors des RMA et au CSE",ctrl:"Audit site · Veille réglementaire"},
+      {t:"Perte de connaissance suite au départ d'un collaborateur",lvl:"std",trait:"Identification des connaissances et du risque associé par poste clé, étude de la passation",ctrl:"Plan d'actions « succession plan »"},
+      {t:"Délit d'entrave et rupture de paix sociale",lvl:"std",trait:"Suivi des indicateurs de paix sociale (ENPS) · Négociations collectives anticipées · Formation des élus et dirigeants aux obligations légales",ctrl:"ENPS · CSE tous les 2 mois · BDESE · Dialogue social"}
+    ],
+    opportunites:[]
+  },
+  {
+    id:"S2", code:"S2", fam:"S", nom:"Gestion des achats (externe)",
+    ref:"QSE-PRO-025", indice:"02", dateMaj:"16/12/2024",
+    pilote:"Julien D'APOLITO – BUYOLOGY", redacteur:"Charlotte ROUQUETTE – Responsable QHSE", approbateur:"Julien D'APOLITO – BUYOLOGY",
+    finalites:[
+      "Répondre aux besoins de BCR-i",
+      "Optimiser les coûts",
+      "Respecter les exigences légales, réglementaires et contractuelles",
+      "Sélectionner et maintenir un portefeuille de fournisseurs fiables et compétitifs",
+      "Contribuer à la performance économique de BCR-i",
+      "Assurer la continuité d'activité en prévenant les risques d'approvisionnement",
+      "Suivre et évaluer les performances des fournisseurs"
+    ],
+    indicateurs:[
+      {nom:"Référencement des fournisseurs stratégiques",obj:"> 90%",outil:"Fournisseurs sous accords-cadres / total fournisseurs",resp:"Responsable achats",freq:"Annuelle"},
+      {nom:"Taux de complétude – autres – fournisseurs référencés",obj:"> 80%",outil:"Analyse du portefeuille",resp:"Responsable achats",freq:"Semestrielle"},
+      {nom:"Taux de complétude – travail dissimulé",obj:"> 80%",outil:"Analyse du portefeuille",resp:"Responsable achats",freq:"Semestrielle"},
+      {nom:"Évaluation financière amont des fournisseurs",obj:"> 80%",outil:"Analyse du portefeuille",resp:"Responsable achats",freq:"Trimestrielle"},
+      {nom:"Signataires de la Charte achats responsables",obj:"100%",outil:"Analyse du portefeuille",resp:"Responsable achats",freq:"Annuelle"},
+      {nom:"Évaluation des fournisseurs",obj:"100%",outil:"Retours des répondants",resp:"Responsable achats",freq:"Annuelle"}
+    ],
+    acteurs:["Président","Directeur Général (DG)","BUYOLOGY","Les 6 autres processus"],
+    entrees:["Demandes de référencement","Bons de commande"],
+    moyens:["Informatique","Personnel formé et intégré","Tableaux de bord","Service finance","Support des approvisionneurs"],
+    sorties:["Catalogue fournisseurs","Évaluation fournisseurs"],
+    interactions:[
+      {p:"M1 – Management, stratégie, analyse et amélioration",d:"Exigences qualité définies par BCR-i · Charte achats responsables"},
+      {p:"R1 – Développement commercial",d:"Revue de contrat · Exigences contractuelles · Cahier des charges · Catalogue fournisseurs pour le chiffrage"},
+      {p:"R2 – Démarrage marché stratégique",d:"Budget · Exigences légales et réglementaires · Parties prenantes identifiées · Investissement matériel · Commandes d'implémentation"},
+      {p:"R3 – Pilotage opérationnel",d:"Revue de contrat · Exigences contractuelles · Cahier des charges · Gestion des commandes"},
+      {p:"R4 – Finance",d:"Budget alloué aux achats · Factures fournisseurs · Rapprochement BC – BL – facture"},
+      {p:"S1 – Gestion des ressources humaines et des compétences",d:"Conformité sociale des fournisseurs (travail dissimulé) · Référencement des prestataires RH : recrutement, intérim, formation"}
+    ],
+    risques:[
+      {t:"Perte d'accès à des fournisseurs clés impactant la continuité des opérations",lvl:"majeur",trait:"Plan de continuité des activités (PCA) et diversification des fournisseurs",ctrl:"Audits réguliers des relations fournisseurs stratégiques"},
+      {t:"Dépendance excessive créant des vulnérabilités stratégiques",lvl:"majeur",trait:"Développement d'alternatives fournisseurs",ctrl:"Analyse annuelle de la dépendance et stratégie d'équilibrage des sources"},
+      {t:"Risques juridiques et réputationnels liés au travail dissimulé",lvl:"majeur",trait:"Clauses de conformité et audits sociaux des fournisseurs",ctrl:"Certification des fournisseurs et vérifications aléatoires"},
+      {t:"Perte ou fuite des données contractuelles critiques",lvl:"std",trait:"Solution de gestion documentaire sécurisée",ctrl:"Audit de la sécurité des données et mises à jour régulières"},
+      {t:"Difficulté à sécuriser les contrats pour la continuité des services",lvl:"std",trait:"Centralisation et gestion proactive des échéances contractuelles",ctrl:"Calendrier de suivi des renouvellements et négociations anticipées"},
+      {t:"Risque de faillite des fournisseurs critiques",lvl:"std",trait:"Surveillance financière des fournisseurs critiques",ctrl:"Évaluation financière amont"}
+    ],
+    opportunites:[]
+  }
+]};
+
+/* ================= LOGIGRAMMES DE BASE ================= */
+const BASE_LOGI = {
+  M1:[
+    {type:"debut",label:"Ouverture du cycle annuel (année N)",resp:"DG"},
+    {type:"etape",label:"Analyse du contexte : SWOT, parties intéressées pertinentes, veille réglementaire",resp:"DG · QHSE"},
+    {type:"etape",label:"Définition de la stratégie, des objectifs et du budget",resp:"Président · DG"},
+    {type:"document",label:"Politique QHSE et objectifs diffusés à l'ensemble des services",resp:"QHSE"},
+    {type:"etape",label:"Déploiement du SMQSE et animation de l'amélioration continue",resp:"QHSE"},
+    {type:"etape",label:"Surveillance : audits internes, V2SE, revues de comptes, suivi des KPI",resp:"QHSE · CDG"},
+    {type:"decision",label:"Objectifs atteints ?",resp:"DG",non:"Actions correctives (CAPA) et suivi de leur efficacité"},
+    {type:"etape",label:"Revue de direction annuelle : bilan, décisions, ressources",resp:"Comité de direction"},
+    {type:"document",label:"Compte rendu de revue de direction · décisions stratégiques",resp:"QHSE"},
+    {type:"fin",label:"Boucle d'amélioration continue (année N+1)"}
+  ],
+  R1:[
+    {type:"debut",label:"Détection d'une opportunité (consultation, réseau, veille, AO)",resp:"Équipe commerciale"},
+    {type:"etape",label:"Qualification du prospect / du dossier d'AO",resp:"Direction commerciale"},
+    {type:"decision",label:"GO / NOGO ?",resp:"Directeur Commercial",non:"Abandon motivé et archivage du dossier"},
+    {type:"etape",label:"Élaboration de la réponse : mémoire technique + offre financière",resp:"Chef de projet AO · Ing. commerciale"},
+    {type:"document",label:"Mémoire technique · offre financière · plaquette commerciale",resp:"Service commercial"},
+    {type:"etape",label:"Soutenance du projet devant le client",resp:"Directeur Commercial"},
+    {type:"decision",label:"Marché gagné ?",resp:"Directeur Commercial",non:"Analyse de l'échec : benchmark, comparaison note technique / prix"},
+    {type:"etape",label:"Revue de contrat et passation vers R2 – Démarrage",resp:"Commerce · Opérationnel"},
+    {type:"fin",label:"Transmission au processus R2"}
+  ],
+  R2:[
+    {type:"debut",label:"Notification d'attribution du marché",resp:"Directeur de projets"},
+    {type:"etape",label:"Réunion de passation Commerce → Opérationnel (revue de contrat)",resp:"Commerce · Exploitation"},
+    {type:"document",label:"Plan directeur d'implémentation",resp:"Directeur de projets"},
+    {type:"etape",label:"Reprise du personnel (Annexe 7, L1224-1) et recrutements",resp:"RH"},
+    {type:"etape",label:"Accueil et intégration des nouveaux arrivants (émargement)",resp:"RRH · Resp. contrat · QHSE"},
+    {type:"document",label:"Plan de prévention signé avant démarrage",resp:"QHSE"},
+    {type:"etape",label:"Mise en place des moyens : matériel, produits, classeur de site",resp:"Resp. de contrat"},
+    {type:"etape",label:"Démarrage de la prestation et premiers contrôles",resp:"Resp. de contrat"},
+    {type:"decision",label:"Démarrage conforme aux exigences ?",resp:"Directeur de projets",non:"Plan d'actions correctives immédiat"},
+    {type:"etape",label:"Bilan à M+3 : marge brute chantier, satisfaction client (CNPS), REX",resp:"CDG · QHSE"},
+    {type:"fin",label:"Bascule en exploitation courante (R3)"}
+  ],
+  R3:[
+    {type:"debut",label:"Contrat en exploitation",resp:"Resp. de contrat"},
+    {type:"etape",label:"Planification des prestations et adéquation charge / ressources",resp:"Resp. de contrat"},
+    {type:"etape",label:"Réalisation des prestations conformément au cahier des charges",resp:"Chefs d'équipe · Collaborateurs"},
+    {type:"etape",label:"Contrôles : autocontrôles, visites V2SE, suivi des réclamations",resp:"Resp. contrat · QHSE"},
+    {type:"decision",label:"Prestation conforme ?",resp:"Resp. de contrat",non:"Traitement de la réclamation / non-conformité et action corrective"},
+    {type:"etape",label:"Revue opérationnelle hebdomadaire (KPI, réclamations, sécurité)",resp:"Direction opérationnelle"},
+    {type:"etape",label:"Revue des comptes : marge brute, plan d'actions par contrat",resp:"Resp. contrat · CDG"},
+    {type:"document",label:"RMA (selon exigence client) · enquête CNPS · ENPS",resp:"QHSE"},
+    {type:"decision",label:"Client satisfait et contrat rentable ?",resp:"Directeur Opérationnel",non:"Plan d'actions client + remontée en revue de direction (M1)"},
+    {type:"fin",label:"Poursuite / renouvellement du contrat"}
+  ],
+  R4:[
+    {type:"debut",label:"Réception du bon de commande client et/ou du devis fournisseur validé",resp:"Comptabilité"},
+    {type:"etape",label:"Enregistrement de l'engagement : commande client au contrat, demande d'achat fournisseur",resp:"Comptabilité · Resp. de contrat"},
+    {type:"decision",label:"Devis fournisseur conforme au budget alloué ?",resp:"Contrôleur de gestion",non:"Renégociation ou retour vers le processus S2 – Achats"},
+    {type:"document",label:"Bon de commande fournisseur émis",resp:"Approvisionneurs"},
+    {type:"etape",label:"Réception de la prestation / livraison et rapprochement BC – BL – facture fournisseur",resp:"Resp. de contrat · Comptabilité"},
+    {type:"decision",label:"Facture fournisseur conforme ?",resp:"Comptabilité",non:"Litige fournisseur : demande d'avoir ou de facture rectificative"},
+    {type:"etape",label:"Paiement fournisseur à échéance",resp:"Resp. comptabilité"},
+    {type:"etape",label:"Facturation client à partir des bons d'intervention et du contrat",resp:"Comptabilité"},
+    {type:"document",label:"Facture client émise",resp:"Comptabilité"},
+    {type:"etape",label:"Suivi des encaissements à échéance (balance âgée)",resp:"Comptabilité"},
+    {type:"decision",label:"Paiement client reçu à échéance ?",resp:"Resp. comptabilité",non:"Relances et procédure de recouvrement"},
+    {type:"etape",label:"Lettrage, imputation analytique et suivi de trésorerie",resp:"Comptabilité · CDG"},
+    {type:"etape",label:"Respect des obligations fiscales (calendrier fiscal)",resp:"Resp. comptabilité"},
+    {type:"document",label:"Reporting financier mensuel à la Direction Générale",resp:"CDG"},
+    {type:"fin",label:"Clôture mensuelle"}
+  ],
+  S1:[
+    {type:"debut",label:"Expression d'un besoin RH (nouveau contrat, remplacement)",resp:"Manager · DRH"},
+    {type:"document",label:"Fiche de poste / fiche de fonction",resp:"RH"},
+    {type:"etape",label:"Recrutement et sélection (sourcing interne / Profilae)",resp:"RH · Cabinet de recrutement"},
+    {type:"decision",label:"Autorisation de travail valide ?",resp:"RH",non:"Embauche refusée · suivi du tableau des cartes de séjour"},
+    {type:"etape",label:"Embauche : DPAE, contrat, dossier du personnel",resp:"RH"},
+    {type:"etape",label:"Accueil, intégration et formations réglementaires",resp:"RH · QHSE · Manager"},
+    {type:"etape",label:"Vie du contrat : paie mensuelle, entretiens professionnels, plan de formation",resp:"RH"},
+    {type:"decision",label:"Anomalies de paie < 3% ?",resp:"RH",non:"Traitement des anomalies via le tableau de contrôle"},
+    {type:"etape",label:"Dialogue social : CSE tous les 2 mois, BDESE, suivi ENPS",resp:"DRH · Relations sociales"},
+    {type:"fin",label:"Fin de contrat : offboarding et passation des connaissances"}
+  ],
+  S2:[
+    {type:"debut",label:"Demande d'achat ou de référencement d'un fournisseur",resp:"Services internes"},
+    {type:"etape",label:"Consultation et sélection des fournisseurs potentiels",resp:"BUYOLOGY"},
+    {type:"etape",label:"Évaluation amont : santé financière, travail dissimulé, complétude documentaire",resp:"Responsable achats"},
+    {type:"decision",label:"Fournisseur conforme et référençable ?",resp:"Responsable achats",non:"Rejet du référencement ou demande de mise en conformité"},
+    {type:"document",label:"Contractualisation : accord-cadre + Charte achats responsables signée",resp:"BUYOLOGY"},
+    {type:"etape",label:"Passation et suivi des commandes",resp:"Approvisionneurs"},
+    {type:"etape",label:"Suivi de la performance et des échéances contractuelles",resp:"Responsable achats"},
+    {type:"decision",label:"Évaluation annuelle satisfaisante ?",resp:"Responsable achats",non:"Plan d'amélioration ou déréférencement · recherche d'alternatives"},
+    {type:"document",label:"Catalogue fournisseurs et évaluations mis à jour",resp:"Responsable achats"},
+    {type:"fin",label:"Portefeuille fournisseurs maintenu"}
+  ]
+};
+BASE_DATA.processes.forEach(p=>{ p.logigramme = BASE_LOGI[p.id] ? JSON.parse(JSON.stringify(BASE_LOGI[p.id])) : []; });
+
+/* ================= ÉTAT & PERSISTANCE ================= */
+const STORE_KEY = "bcri-cartographie-v1";
+
+/* Noms canoniques des processus (nomenclature officielle) */
+const CANON = {
+  M1:"M1 – Management, stratégie, analyse et amélioration",
+  R1:"R1 – Développement commercial",
+  R2:"R2 – Démarrage marché stratégique",
+  R3:"R3 – Pilotage opérationnel",
+  R4:"R4 – Finance",
+  S1:"S1 – Gestion des ressources humaines et des compétences",
+  S2:"S2 – Gestion des achats"
+};
+function codeOf(label){
+  const m = (label||"").match(/^\s*([MRS])\s*0?([0-9])/i);
+  return m ? (m[1].toUpperCase()+m[2]) : null;
+}
+
+/* Migration : applique les corrections de cohérence aux données sauvegardées */
+function migrate(d){
+  d.processes.forEach(p=>{
+    // Logigramme manquant OU vide sur un processus de base → restaurer le logigramme par défaut
+    if(!p.logigramme || (p.logigramme.length===0 && BASE_LOGI[p.id])){
+      p.logigramme = BASE_LOGI[p.id] ? JSON.parse(JSON.stringify(BASE_LOGI[p.id])) : [];
+    }
+    // Nomenclature canonique dans les interactions
+    (p.interactions||[]).forEach(it=>{
+      const c = codeOf(it.p);
+      if(c && CANON[c]) it.p = CANON[c];
+    });
+    // Fusion des doublons (même processus cité deux fois, ex. M1 → R3)
+    const seen = {};
+    p.interactions = (p.interactions||[]).filter(it=>{
+      const c = codeOf(it.p) || it.p;
+      if(seen[c]){ if(it.d && !seen[c].d.includes(it.d)) seen[c].d += " · " + it.d; return false; }
+      seen[c] = it; return true;
+    });
+    // Réciprocité : compléter avec les interactions de base manquantes
+    const base = BASE_DATA.processes.find(x=>x.id===p.id);
+    if(base){
+      base.interactions.forEach(bit=>{
+        const c = codeOf(bit.p);
+        if(c && !p.interactions.some(it=>codeOf(it.p)===c)){
+          p.interactions.push(JSON.parse(JSON.stringify(bit)));
+        }
+      });
+    }
+  });
+  // R3 : finalités recentrées (uniquement si l'ancien défaut n'a pas été modifié)
+  const r3 = d.processes.find(x=>x.id==="R3");
+  if(r3){
+    if((r3.finalites||[]).some(f=>f.startsWith("Gérer au plus juste les achats"))){
+      r3.finalites = JSON.parse(JSON.stringify(BASE_DATA.processes.find(x=>x.id==="R3").finalites));
+    }
+    if(r3.pilote==="Jordan BIESSY – Directeur Opérationnel") r3.pilote = "Jordan BIESSY – Directeur Général";
+  }
+  // R4 : logigramme étendu, indicateurs et E/M/S si non modifiés
+  const r4 = d.processes.find(x=>x.id==="R4");
+  if(r4){
+    const base4 = BASE_DATA.processes.find(x=>x.id==="R4");
+    if(r4.logigramme && r4.logigramme[0] && r4.logigramme[0].label.startsWith("Réception des éléments facturables")){
+      r4.logigramme = JSON.parse(JSON.stringify(BASE_LOGI.R4));
+    }
+    ["entrees","moyens","sorties"].forEach(k=>{ if(!r4[k] || r4[k].length===0) r4[k] = JSON.parse(JSON.stringify(base4[k])); });
+    if(r4.indicateurs.length===1 && r4.indicateurs[0].nom==="Taux de créances échues non recouvrées" && !r4.indicateurs[0].obj){
+      r4.indicateurs = JSON.parse(JSON.stringify(base4.indicateurs));
+    }
+  }
+  return d;
+}
+let data = JSON.parse(JSON.stringify(BASE_DATA));
+let editMode = false;
+let currentId = null;
+let saveTimer = null;
+
+function setSaveState(t){ document.getElementById('saveState').textContent = t; }
+function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2200); }
+
+/* Couche de persistance universelle :
+   - dans Claude : window.storage (API artefact)
+   - hébergé en ligne (GitHub Pages, intranet…) : localStorage du navigateur */
+const store = {
+  async get(k){
+    if(window.storage) return await window.storage.get(k);
+    try{ const v = localStorage.getItem(k); return v!==null ? {value:v} : null; }catch(e){ return null; }
+  },
+  async set(k,v){
+    if(window.storage) return await window.storage.set(k,v);
+    try{ localStorage.setItem(k,v); return {value:v}; }catch(e){ return null; }
+  },
+  available(){ try{ return !!window.storage || !!window.localStorage; }catch(e){ return false; } }
+};
+
+async function loadData(){
+  try{
+    const r = await store.get(STORE_KEY);
+    if(r && r.value){
+      data = migrate(JSON.parse(r.value));
+      setSaveState("Chargé ✓");
+      saveData(); // persister immédiatement les réparations de la migration
+      return;
+    }
+  }catch(e){ /* pas de données sauvegardées : on garde la base */ }
+  setSaveState("Base ESEIS");
+}
+function scheduleSave(){
+  setSaveState("Modification…");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveData, 700);
+}
+async function saveData(){
+  try{
+    if(store.available()){
+      const r = await store.set(STORE_KEY, JSON.stringify(data));
+      setSaveState(r ? "Enregistré ✓" : "Session seule");
+    } else { setSaveState("Session seule"); }
+  }catch(e){ setSaveState("Session seule"); }
+}
+
+/* ================= RENDU CARTOGRAPHIE ================= */
+const FAM_LABEL = {M:"Processus de management", R:"Processus de réalisation", S:"Processus support"};
+function esc(s){ return (s??"").toString().replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
+
+function renderMap(){
+  document.getElementById('siteName').textContent = data.site;
+  const bands = document.getElementById('bands');
+  bands.innerHTML = "";
+  ["M","R","S"].forEach(fam=>{
+    const procs = data.processes.filter(p=>p.fam===fam);
+    const band = document.createElement('div');
+    band.className = "band "+fam;
+    band.innerHTML = `<div class="band-head"><h3>${FAM_LABEL[fam]}</h3><button class="add-proc" data-fam="${fam}">+ Ajouter un processus</button></div><div class="proc-row"></div>`;
+    const row = band.querySelector('.proc-row');
+    procs.forEach((p,i)=>{
+      if(fam==="R" && i>0){ const a=document.createElement('span'); a.className='flow-arrow'; a.textContent='➜'; row.appendChild(a); }
+      const c = document.createElement('button');
+      c.className = 'proc-card';
+      const nbR = p.risques.length, nbI = p.indicateurs.filter(x=>x.nom).length;
+      c.innerHTML = `<div class="code">${esc(p.code)}</div>
+        <div class="nom">${esc(p.nom)}</div>
+        <div class="pilote">Pilote : ${esc(p.pilote.split('·')[0])}</div>
+        <div class="badges"><span class="badge">${nbI} indicateur${nbI>1?'s':''}</span><span class="badge">${nbR} risque${nbR>1?'s':''}</span></div>`;
+      c.addEventListener('click',()=>openDrawer(p.id));
+      row.appendChild(c);
+    });
+    bands.appendChild(band);
+  });
+  bands.querySelectorAll('.add-proc').forEach(b=>b.addEventListener('click',e=>{
+    document.getElementById('npFam').value = e.currentTarget.dataset.fam;
+    document.getElementById('dlgNew').showModal();
+  }));
+  try{ renderMatrix(); }catch(e){ console.error("Matrice:", e); }
+}
+
+/* ================= RENDU FICHE / DRAWER ================= */
+function ce(v){ return `contenteditable="${editMode}"`; }
+
+function ulEditable(list, path){
+  const items = list.map((v,i)=>`<li><span ${ce()} data-path="${path}.${i}">${esc(v)}</span><button class="mini" data-del="${path}.${i}" title="Supprimer">✕</button></li>`).join("");
+  return `<ul class="simple" data-list="${path}">${items || '<li style="color:#8a97a3;border:none"><span>—</span></li>'}</ul><button class="addline" data-add="${path}">+ Ajouter une ligne</button>`;
+}
+
+function logiHTML(p){
+  const steps = p.logigramme || [];
+  if(!steps.length) return `<p style="font-size:13px;color:#8a97a3;text-align:center">Aucune étape définie — activez le mode édition pour construire le logigramme.</p><div class="logi"></div>`;
+  const inner = steps.map((s,i)=>{
+    const ctrl = `<div class="logi-ctrl">
+      <button data-lg-up="${i}" title="Monter" ${i===0?'disabled':''}>↑</button>
+      <button data-lg-down="${i}" title="Descendre" ${i===steps.length-1?'disabled':''}>↓</button>
+      <button class="del" data-lg-del="${i}" title="Supprimer">✕</button></div>`;
+    const resp = (s.type!=='fin') ? `<span class="logi-resp" title="Responsable">👤 <span ${ce()} data-path="logigramme.${i}.resp">${esc(s.resp||"")}</span></span>` : "";
+    const node = `<div class="logi-node ${s.type}">${ctrl}<div class="box"><span class="lbl" ${ce()} data-path="logigramme.${i}.label">${esc(s.label)}</span></div>${resp}</div>`;
+    const non = s.type==='decision' ? `<div class="logi-non"><b>Non →</b> <span ${ce()} data-path="logigramme.${i}.non">${esc(s.non||"")}</span></div><div class="logi-oui">OUI ↓</div>` : "";
+    const arrow = (i<steps.length-1) ? `<div class="logi-arrow">▼</div>` : "";
+    return `<div class="logi-step">${node}${non}${arrow}</div>`;
+  }).join("");
+  return `<div class="logi">${inner}</div>`;
+}
+
+function openDrawer(id){
+  currentId = id;
+  const p = data.processes.find(x=>x.id===id);
+  if(!p) return;
+  const head = document.getElementById('dHead');
+  head.className = "d-head "+p.fam;
+  document.getElementById('dCode').textContent = p.code;
+  document.getElementById('dTitle').innerHTML = `<span ${ce()} data-path="nom">${esc(p.nom)}</span>`;
+  document.getElementById('dMeta').innerHTML =
+    `Réf. <span ${ce()} data-path="ref">${esc(p.ref)}</span> · Indice <span ${ce()} data-path="indice">${esc(p.indice)}</span> · MàJ <span ${ce()} data-path="dateMaj">${esc(p.dateMaj)}</span>`;
+
+  const body = document.getElementById('dBody');
+  body.innerHTML = `
+    <div class="d-actions"><button class="del-proc" id="btnDelProc">🗑 Supprimer ce processus</button></div>
+
+    <div class="section"><h3>Identité</h3><div class="content identgrid">
+      <div class="field"><label>Site d'application</label><div class="val" ${ce()} data-path-root="site">${esc(data.site)}</div></div>
+      <div class="field"><label>Pilote du processus</label><div class="val" ${ce()} data-path="pilote">${esc(p.pilote)}</div></div>
+      <div class="field"><label>Rédacteur</label><div class="val" ${ce()} data-path="redacteur">${esc(p.redacteur)}</div></div>
+      <div class="field"><label>Approbateur</label><div class="val" ${ce()} data-path="approbateur">${esc(p.approbateur)}</div></div>
+    </div></div>
+
+    <div class="section"><h3>Finalités du processus</h3><div class="content">${ulEditable(p.finalites,"finalites")}</div></div>
+
+    <div class="section"><h3>Indicateurs de performance</h3><div class="content" style="overflow-x:auto">
+      <table><thead><tr><th>Indicateur</th><th>Objectif</th><th>Mesure / outil</th><th>Responsable</th><th>Fréquence</th><th></th></tr></thead>
+      <tbody>${p.indicateurs.map((k,i)=>`<tr>
+        <td ${ce()} data-path="indicateurs.${i}.nom">${esc(k.nom)}</td>
+        <td ${ce()} data-path="indicateurs.${i}.obj">${esc(k.obj)}</td>
+        <td ${ce()} data-path="indicateurs.${i}.outil">${esc(k.outil)}</td>
+        <td ${ce()} data-path="indicateurs.${i}.resp">${esc(k.resp)}</td>
+        <td ${ce()} data-path="indicateurs.${i}.freq">${esc(k.freq)}</td>
+        <td><button class="mini" data-del="indicateurs.${i}">✕</button></td></tr>`).join("")}</tbody></table>
+      <button class="addline" data-add-obj="indicateurs">+ Ajouter un indicateur</button>
+    </div></div>
+
+    <div class="section"><h3>Logigramme de fonctionnement</h3><div class="content">
+      <div class="logi-legend">
+        <span><i class="l-pill"></i>Début / Fin</span>
+        <span><i class="l-rect"></i>Étape</span>
+        <span><i class="l-dia"></i>Décision</span>
+        <span><i class="l-doc"></i>Document / enregistrement</span>
+      </div>
+      ${logiHTML(p)}
+      <div class="logi-addbar">
+        <select id="lgType">
+          <option value="etape">Étape</option>
+          <option value="decision">Décision (Oui/Non)</option>
+          <option value="document">Document</option>
+          <option value="debut">Début</option>
+          <option value="fin">Fin</option>
+        </select>
+        <button class="addline" style="display:inline-block;margin-top:0" id="lgAdd">+ Ajouter au logigramme</button>
+      </div>
+    </div></div>
+
+    <div class="section"><h3>Acteurs du processus</h3><div class="content">${ulEditable(p.acteurs,"acteurs")}</div></div>
+
+    <div class="section"><h3>Positionnement dans la cartographie</h3><div class="content threecol">
+      <div class="col"><h4>Données d'entrée</h4>${ulEditable(p.entrees,"entrees")}</div>
+      <div class="col"><h4>Moyens</h4>${ulEditable(p.moyens,"moyens")}</div>
+      <div class="col"><h4>Données de sortie</h4>${ulEditable(p.sorties,"sorties")}</div>
+    </div></div>
+
+    <div class="section"><h3>Interactions avec les autres processus</h3><div class="content">
+      ${p.interactions.map((it,i)=>`<div class="interaction">
+        <div class="p" ${ce()} data-path="interactions.${i}.p">${esc(it.p)}</div>
+        <div style="display:flex;gap:4px"><span style="flex:1" ${ce()} data-path="interactions.${i}.d">${esc(it.d)}</span><button class="mini" data-del="interactions.${i}">✕</button></div>
+      </div>`).join("")}
+      <button class="addline" data-add-obj="interactions">+ Ajouter une interaction</button>
+    </div></div>
+
+    <div class="section"><h3>Risques associés</h3><div class="content">
+      ${p.risques.map((r,i)=>`<div class="risk ${r.lvl==='majeur'?'majeur':''}">
+        <div class="r-title"><span class="lvl ${r.lvl==='majeur'?'':'std'}" data-lvl="risques.${i}" title="${editMode?'Cliquer pour changer le niveau':''}" style="${editMode?'cursor:pointer':''}">${r.lvl==='majeur'?'Risque majeur':'Risque'}</span>
+        <span style="flex:1" ${ce()} data-path="risques.${i}.t">${esc(r.t)}</span><button class="mini" data-del="risques.${i}">✕</button></div>
+        <div class="tc">
+          <div><b>Traitement</b><span ${ce()} data-path="risques.${i}.trait">${esc(r.trait)}</span></div>
+          <div><b>Contrôle</b><span ${ce()} data-path="risques.${i}.ctrl">${esc(r.ctrl)}</span></div>
+        </div></div>`).join("")}
+      <button class="addline" data-add-obj="risques">+ Ajouter un risque</button>
+    </div></div>
+
+    <div class="section"><h3>Opportunités</h3><div class="content">${ulEditable(p.opportunites,"opportunites")}</div></div>
+  `;
+
+  bindDrawer(p);
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+
+function bindDrawer(p){
+  const body = document.getElementById('drawer');
+  // édition inline
+  body.querySelectorAll('[data-path]').forEach(el=>{
+    el.addEventListener('input',()=>{ setByPath(p, el.dataset.path, el.innerText.trim()); scheduleSave(); renderMapSoft(); });
+  });
+  body.querySelectorAll('[data-path-root]').forEach(el=>{
+    el.addEventListener('input',()=>{ data[el.dataset.pathRoot] = el.innerText.trim(); scheduleSave(); renderMapSoft(); });
+  });
+  // suppression
+  body.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{
+    const [arr,idx] = splitPath(b.dataset.del);
+    p[arr].splice(idx,1); scheduleSave(); openDrawer(p.id); renderMap();
+  }));
+  // ajout ligne simple
+  body.querySelectorAll('[data-add]').forEach(b=>b.addEventListener('click',()=>{
+    p[b.dataset.add].push("Nouvelle ligne"); scheduleSave(); openDrawer(p.id);
+  }));
+  // ajout objet
+  body.querySelectorAll('[data-add-obj]').forEach(b=>b.addEventListener('click',()=>{
+    const k = b.dataset.addObj;
+    if(k==="indicateurs") p.indicateurs.push({nom:"Nouvel indicateur",obj:"",outil:"",resp:"",freq:""});
+    if(k==="interactions") p.interactions.push({p:"Processus",d:"Données échangées"});
+    if(k==="risques") p.risques.push({t:"Nouveau risque",lvl:"std",trait:"",ctrl:""});
+    scheduleSave(); openDrawer(p.id); renderMap();
+  }));
+  // bascule niveau de risque
+  body.querySelectorAll('[data-lvl]').forEach(b=>b.addEventListener('click',()=>{
+    if(!editMode) return;
+    const [arr,idx] = splitPath(b.dataset.lvl);
+    p[arr][idx].lvl = p[arr][idx].lvl==='majeur' ? 'std' : 'majeur';
+    scheduleSave(); openDrawer(p.id);
+  }));
+  // logigramme : ajout / suppression / déplacement
+  const lgAdd = document.getElementById('lgAdd');
+  if(lgAdd) lgAdd.addEventListener('click',()=>{
+    const t = document.getElementById('lgType').value;
+    if(!p.logigramme) p.logigramme = [];
+    const labels = {etape:"Nouvelle étape",decision:"Nouvelle décision ?",document:"Nouveau document",debut:"Début",fin:"Fin"};
+    const step = {type:t,label:labels[t],resp:""};
+    if(t==='decision') step.non = "Action si non";
+    p.logigramme.push(step);
+    scheduleSave(); openDrawer(p.id);
+  });
+  body.querySelectorAll('[data-lg-del]').forEach(b=>b.addEventListener('click',()=>{
+    p.logigramme.splice(+b.dataset.lgDel,1); scheduleSave(); openDrawer(p.id);
+  }));
+  body.querySelectorAll('[data-lg-up]').forEach(b=>b.addEventListener('click',()=>{
+    const i = +b.dataset.lgUp; if(i===0) return;
+    [p.logigramme[i-1],p.logigramme[i]] = [p.logigramme[i],p.logigramme[i-1]];
+    scheduleSave(); openDrawer(p.id);
+  }));
+  body.querySelectorAll('[data-lg-down]').forEach(b=>b.addEventListener('click',()=>{
+    const i = +b.dataset.lgDown; if(i>=p.logigramme.length-1) return;
+    [p.logigramme[i+1],p.logigramme[i]] = [p.logigramme[i],p.logigramme[i+1]];
+    scheduleSave(); openDrawer(p.id);
+  }));
+  // suppression du processus
+  const del = document.getElementById('btnDelProc');
+  if(del) del.addEventListener('click',()=>{
+    if(confirm(`Supprimer définitivement le processus ${p.code} – ${p.nom} ?`)){
+      data.processes = data.processes.filter(x=>x.id!==p.id);
+      scheduleSave(); closeDrawer(); renderMap(); toast("Processus supprimé");
+    }
+  });
+}
+function splitPath(s){ const parts=s.split("."); return [parts[0], parseInt(parts[1])]; }
+function setByPath(obj, path, val){
+  const parts = path.split(".");
+  let cur = obj;
+  for(let i=0;i<parts.length-1;i++){ cur = cur[isNaN(parts[i])?parts[i]:+parts[i]]; }
+  const last = parts[parts.length-1];
+  cur[isNaN(last)?last:+last] = val;
+}
+let mapSoftTimer=null;
+function renderMapSoft(){ clearTimeout(mapSoftTimer); mapSoftTimer=setTimeout(()=>{renderMap();},600); }
+
+/* ================= MATRICE & SCHÉMA DES FLUX ================= */
+let mxSelected = null; // {a,b} paire sélectionnée
+
+function buildDecl(){
+  const decl = {};
+  data.processes.forEach(p=>{
+    decl[p.code] = {};
+    (p.interactions||[]).forEach(it=>{
+      const c = codeOf(it.p);
+      if(c && c!==p.code) decl[p.code][c] = it.d || "";
+    });
+  });
+  return decl;
+}
+
+function renderMatrix(){
+  const procs = data.processes;
+  const decl = buildDecl();
+  const codes = procs.map(p=>p.code);
+  let issues = [];
+
+  /* --- Grille --- */
+  let html = `<table class="mx"><tr><th></th>${codes.map(c=>`<th>${esc(c)}</th>`).join("")}</tr>`;
+  procs.forEach(src=>{
+    html += `<tr><th class="rowh" title="${esc(src.nom)}">${esc(src.code)} · ${esc(src.nom.length>34?src.nom.slice(0,34)+"…":src.nom)}</th>`;
+    codes.forEach(tgt=>{
+      if(tgt===src.code){ html += `<td><div class="mx-cell self">—</div></td>`; return; }
+      const here = tgt in decl[src.code];
+      const back = src.code in decl[tgt];
+      const sel = mxSelected && ((mxSelected.a===src.code&&mxSelected.b===tgt)||(mxSelected.a===tgt&&mxSelected.b===src.code)) ? " sel" : "";
+      if(here && back){
+        html += `<td><div class="mx-cell both${sel}" data-pair="${esc(src.code)}|${esc(tgt)}">✓</div></td>`;
+      } else if(here && !back){
+        html += `<td><div class="mx-cell oneway${sel}" data-pair="${esc(src.code)}|${esc(tgt)}">!</div></td>`;
+        issues.push(`${src.code} déclare une interaction avec ${tgt}, mais la fiche ${tgt} ne cite pas ${src.code} en retour.`);
+      } else {
+        html += `<td><div class="mx-cell none${back?" oneway"+sel:""}" ${back?`data-pair="${esc(src.code)}|${esc(tgt)}"`:""}></div></td>`;
+      }
+    });
+    html += `</tr>`;
+  });
+  html += `</table>`;
+  document.getElementById('mxGrid').innerHTML = html;
+  document.getElementById('mxGrid').querySelectorAll('[data-pair]').forEach(c=>{
+    c.addEventListener('click',()=>{ const [a,b]=c.dataset.pair.split("|"); showPairDetail(a,b); });
+  });
+
+  /* --- Schéma des flux --- */
+  renderFlow(decl);
+
+  /* --- Anomalies --- */
+  procs.forEach(p=>Object.keys(decl[p.code]).forEach(t=>{
+    if(!decl[p.code][t]) issues.push(`${p.code} → ${t} : le flux est déclaré mais les données échangées ne sont pas précisées.`);
+  }));
+  document.getElementById('mxIssues').innerHTML = issues.map(t=>`<li>${esc(t)}</li>`).join("");
+  const al = document.getElementById('mxAlert');
+  if(issues.length){ al.className="mx-alert warn"; al.textContent = issues.length+" point"+(issues.length>1?"s":"")+" à harmoniser"; }
+  else { al.className="mx-alert ok"; al.textContent = "Toutes les interactions sont réciproques ✓"; }
+
+  /* --- Détail : rafraîchir ou vider --- */
+  if(mxSelected){
+    const ex = data.processes.some(p=>p.code===mxSelected.a) && data.processes.some(p=>p.code===mxSelected.b);
+    if(ex) showPairDetail(mxSelected.a, mxSelected.b, true); else { mxSelected=null; document.getElementById('mxDetail').innerHTML=""; }
+  }
+}
+
+function flowPositions(procs){
+  const W=940;
+  const gM=procs.filter(p=>p.fam==="M"), gR=procs.filter(p=>p.fam==="R"), gS=procs.filter(p=>p.fam==="S");
+  const pos={};
+  const spread=(g,y)=>g.forEach((p,i)=>{ pos[p.code]={x: W*(i+1)/(g.length+1), y, fam:p.fam, nom:p.nom}; });
+  spread(gM,70); spread(gR,235); spread(gS,400);
+  return {pos, W, H:470};
+}
+
+function renderFlow(decl){
+  const procs = data.processes;
+  const {pos,W,H} = flowPositions(procs);
+  const codes = procs.map(p=>p.code);
+  const NW=132, NH=54;
+  let links="", nodes="";
+  // paires uniques
+  for(let i=0;i<codes.length;i++) for(let j=i+1;j<codes.length;j++){
+    const a=codes[i], b=codes[j];
+    const ab = b in decl[a], ba = a in decl[b];
+    if(!ab && !ba) continue;
+    const cls = (ab&&ba) ? "both" : "oneway";
+    const A=pos[a], B=pos[b];
+    // courbe : point de contrôle décalé perpendiculairement pour aérer
+    const mx=(A.x+B.x)/2, my=(A.y+B.y)/2;
+    const dx=B.x-A.x, dy=B.y-A.y, len=Math.hypot(dx,dy)||1;
+    const bend = (A.y===B.y) ? 46 : 24; // liens horizontaux plus courbés
+    const cx=mx - dy/len*bend, cy=my + dx/len*bend;
+    const sel = mxSelected && ((mxSelected.a===a&&mxSelected.b===b)||(mxSelected.a===b&&mxSelected.b===a)) ? " sel":"";
+    links += `<path class="fl-link ${cls}${sel}" data-pair="${a}|${b}" d="M${A.x},${A.y} Q${cx},${cy} ${B.x},${B.y}"><title>${a} ↔ ${b}</title></path>`;
+  }
+  procs.forEach(p=>{
+    const P=pos[p.code];
+    const nom = p.nom.length>24 ? p.nom.slice(0,24)+"…" : p.nom;
+    const sel = mxSelected && (mxSelected.a===p.code||mxSelected.b===p.code) ? " sel":"";
+    nodes += `<g class="fl-node ${P.fam}${sel}" data-node="${p.code}" transform="translate(${P.x-NW/2},${P.y-NH/2})">
+      <rect width="${NW}" height="${NH}" rx="9"></rect>
+      <text class="fl-code" x="${NW/2}" y="22" text-anchor="middle">${esc(p.code)}</text>
+      <text class="fl-name" x="${NW/2}" y="40" text-anchor="middle">${esc(nom)}</text>
+    </g>`;
+  });
+  document.getElementById('mxFlow').innerHTML =
+    `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${links}${nodes}</svg>
+     <p class="fl-hint">Trait plein vert : flux réciproque · Pointillé orange : flux à sens unique · Cliquez sur un lien ou un processus</p>`;
+  const svg = document.getElementById('mxFlow');
+  svg.querySelectorAll('.fl-link').forEach(l=>l.addEventListener('click',()=>{ const [a,b]=l.dataset.pair.split("|"); showPairDetail(a,b); }));
+  svg.querySelectorAll('.fl-node').forEach(n=>n.addEventListener('click',()=>showNodeDetail(n.dataset.node)));
+}
+
+function highlightFlow(){
+  const svg=document.getElementById('mxFlow');
+  svg.querySelectorAll('.fl-link').forEach(l=>{
+    const [a,b]=l.dataset.pair.split("|");
+    const on = mxSelected && ((mxSelected.b && ((mxSelected.a===a&&mxSelected.b===b)||(mxSelected.a===b&&mxSelected.b===a))) || (!mxSelected.b && (mxSelected.a===a||mxSelected.a===b)));
+    l.classList.toggle('sel', !!on && !!mxSelected.b);
+    l.classList.toggle('dim', mxSelected ? !on : false);
+  });
+  svg.querySelectorAll('.fl-node').forEach(n=>{
+    const c=n.dataset.node;
+    const on = mxSelected && (mxSelected.a===c || mxSelected.b===c);
+    n.classList.toggle('sel', !!on);
+    n.classList.toggle('dim', mxSelected ? !on : false);
+  });
+}
+
+function fmtData(d){
+  if(!d) return `<span class="missing">Flux non déclaré dans cette fiche — à compléter ou à supprimer de l'autre côté.</span>`;
+  return esc(d).split(" · ").join(" <span style='color:#c4ccd3'>·</span> ");
+}
+function showPairDetail(a,b,silent){
+  mxSelected={a,b};
+  const decl=buildDecl();
+  const pa=data.processes.find(p=>p.code===a), pb=data.processes.find(p=>p.code===b);
+  const ab = b in decl[a], ba = a in decl[b];
+  document.getElementById('mxDetail').innerHTML = `<div class="mxd-card">
+    <div class="mxd-head"><span class="pair">${esc(a)} ↔ ${esc(b)}</span>
+      <span style="font-size:12px;color:var(--ink-soft)">${esc(pa.nom)} / ${esc(pb.nom)}</span>
+      <span class="mxd-open">
+        <button data-open="${esc(pa.id)}">Ouvrir ${esc(a)}</button>
+        <button data-open="${esc(pb.id)}">Ouvrir ${esc(b)}</button>
+      </span></div>
+    <div class="mxd-flow${ab?"":" absent"}"><span class="mxd-dir">${esc(a)} <span class="ar">→</span> ${esc(b)}</span><span>${fmtData(ab?(decl[a][b]||""):null)}</span></div>
+    <div class="mxd-flow${ba?"":" absent"}"><span class="mxd-dir">${esc(b)} <span class="ar">→</span> ${esc(a)}</span><span>${fmtData(ba?(decl[b][a]||""):null)}</span></div>
+  </div>`;
+  bindDetailButtons();
+  if(!silent){ refreshSelection(); }
+}
+function showNodeDetail(c){
+  mxSelected={a:c,b:null};
+  const decl=buildDecl();
+  const pc=data.processes.find(p=>p.code===c);
+  const others = data.processes.filter(p=>p.code!==c);
+  const rows = others.map(o=>{
+    const out = o.code in decl[c] ? decl[c][o.code] : null;
+    const inn = c in decl[o.code] ? decl[o.code][c] : null;
+    if(out===null && inn===null) return "";
+    return `<div class="mxd-flow${out!==null?"":" absent"}"><span class="mxd-dir">${esc(c)} <span class="ar">→</span> ${esc(o.code)}</span><span>${fmtData(out!==null?(out||""):null)}</span></div>
+            <div class="mxd-flow${inn!==null?"":" absent"}"><span class="mxd-dir">${esc(o.code)} <span class="ar">→</span> ${esc(c)}</span><span>${fmtData(inn!==null?(inn||""):null)}</span></div>`;
+  }).join("");
+  document.getElementById('mxDetail').innerHTML = `<div class="mxd-card">
+    <div class="mxd-head"><span class="pair">${esc(c)}</span>
+      <span style="font-size:12px;color:var(--ink-soft)">${esc(pc.nom)} — tous les flux</span>
+      <span class="mxd-open"><button data-open="${esc(pc.id)}">Ouvrir la fiche ${esc(c)}</button></span></div>
+    ${rows}</div>`;
+  bindDetailButtons();
+  refreshSelection();
+}
+function bindDetailButtons(){
+  document.getElementById('mxDetail').querySelectorAll('[data-open]').forEach(b=>{
+    b.addEventListener('click',()=>openDrawer(b.dataset.open));
+  });
+}
+function refreshSelection(){
+  // resurligner la grille et le schéma sans tout reconstruire
+  document.getElementById('mxGrid').querySelectorAll('.mx-cell').forEach(cell=>{
+    if(!cell.dataset.pair){ cell.classList.remove('sel'); return; }
+    const [a,b]=cell.dataset.pair.split("|");
+    const on = mxSelected && ((mxSelected.b && ((mxSelected.a===a&&mxSelected.b===b)||(mxSelected.a===b&&mxSelected.b===a))) || (!mxSelected.b && (mxSelected.a===a||mxSelected.a===b)));
+    cell.classList.toggle('sel', !!on);
+  });
+  highlightFlow();
+}
+
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+  currentId = null;
+}
+
+/* ================= ACTIONS GLOBALES ================= */
+document.getElementById('dClose').addEventListener('click',closeDrawer);
+document.getElementById('overlay').addEventListener('click',closeDrawer);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDrawer(); });
+
+document.getElementById('btnEdit').addEventListener('click',()=>{
+  editMode = !editMode;
+  document.body.classList.toggle('edit', editMode);
+  const b = document.getElementById('btnEdit');
+  b.textContent = editMode ? "✔ Terminer l'édition" : "✏️ Mode édition";
+  b.classList.toggle('editing', editMode);
+  document.getElementById('siteName').setAttribute('contenteditable', editMode);
+  if(currentId) openDrawer(currentId);
+});
+document.getElementById('siteName').addEventListener('input',e=>{ data.site=e.target.innerText.trim(); scheduleSave(); });
+
+document.getElementById('btnReset').addEventListener('click',async()=>{
+  if(confirm("Réinitialiser toute la cartographie avec les données de base ESEIS ? Vos modifications seront perdues.")){
+    data = JSON.parse(JSON.stringify(BASE_DATA));
+    await saveData(); closeDrawer(); renderMap(); toast("Cartographie réinitialisée");
+  }
+});
+
+document.getElementById('btnExport').addEventListener('click',()=>{
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = "cartographie_processus_"+data.site.replace(/\s+/g,'_')+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("Export JSON téléchargé");
+});
+document.getElementById('btnImport').addEventListener('click',()=>document.getElementById('fileImport').click());
+document.getElementById('fileImport').addEventListener('change',e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{ try{
+      const d = JSON.parse(r.result);
+      if(!d.processes) throw new Error();
+      data = migrate(d); scheduleSave(); closeDrawer(); renderMap(); toast("Cartographie importée");
+    }catch(err){ toast("Fichier invalide : import annulé"); } };
+  r.readAsText(f);
+  e.target.value = "";
+});
+
+/* nouveau processus */
+document.getElementById('npCancel').addEventListener('click',()=>document.getElementById('dlgNew').close());
+document.getElementById('npOk').addEventListener('click',()=>{
+  const code = document.getElementById('npCode').value.trim() || "PX";
+  const nom = document.getElementById('npNom').value.trim() || "Nouveau processus";
+  const fam = document.getElementById('npFam').value;
+  const pil = document.getElementById('npPilote').value.trim() || "À définir";
+  const id = code + "-" + Date.now();
+  data.processes.push({id, code, fam, nom, ref:"QSE-DOC-XXX", indice:"01", dateMaj:new Date().toLocaleDateString('fr-FR'),
+    pilote:pil, redacteur:"À définir", approbateur:"À définir",
+    finalites:[], indicateurs:[], acteurs:[], entrees:[], moyens:[], sorties:[], interactions:[], risques:[], opportunites:[],
+    logigramme:[{type:"debut",label:"Début",resp:""},{type:"fin",label:"Fin"}]});
+  scheduleSave(); renderMap();
+  document.getElementById('dlgNew').close();
+  document.getElementById('npCode').value=""; document.getElementById('npNom').value=""; document.getElementById('npPilote').value="";
+  toast("Processus "+code+" créé — ouvrez sa fiche pour la compléter");
+});
+
+/* matrice : repli / dépli */
+document.getElementById('mxToggle').addEventListener('click',()=>{
+  document.getElementById('matrixPanel').classList.toggle('open');
+});
+/* onglets matrice / schéma */
+document.querySelectorAll('.mx-tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.mx-tab').forEach(x=>x.classList.toggle('active', x===t));
+  document.getElementById('mxGrid').style.display = t.dataset.view==="grid" ? "" : "none";
+  document.getElementById('mxFlow').style.display = t.dataset.view==="flow" ? "" : "none";
+}));
+
+/* init */
+loadData().then(renderMap);
+</script>
+</body>
+</html>
