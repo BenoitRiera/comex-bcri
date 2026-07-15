@@ -709,6 +709,7 @@
   }
 
   function signOut() {
+    localStorage.removeItem('bcri-user-email');
     msalInstance.logoutRedirect({ postLogoutRedirectUri: "https://benoitriera.github.io/comex-bcri/" });
   }
 
@@ -739,6 +740,7 @@
     document.getElementById('logout-btn').style.display = 'block';
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
+    localStorage.setItem('bcri-user-email', email);
     initDashboard();
   }
 

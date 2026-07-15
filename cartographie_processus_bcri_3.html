@@ -1334,6 +1334,16 @@ document.querySelectorAll('.mx-tab').forEach(t=>t.addEventListener('click',()=>{
 
 /* init */
 loadData().then(renderMap);
+
+/* Restriction édition : uniquement les éditeurs autorisés */
+const ALLOWED_EDITORS = ['benoit.riera@bcr-i.com', 'nicolas.pauquet@eseis.fr'];
+const currentUserEmail = (localStorage.getItem('bcri-user-email') || '').toLowerCase();
+if (!ALLOWED_EDITORS.includes(currentUserEmail)) {
+  ['btnEdit', 'btnReset', 'btnImport'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+}
 </script>
 </body>
 </html>
