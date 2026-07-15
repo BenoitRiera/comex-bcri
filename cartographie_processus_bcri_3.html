@@ -68,6 +68,13 @@ body.edit .band-head .add-proc{display:inline-block}
 .proc-card .badges{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
 .proc-card .badge{font-size:10.5px;background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:2px 8px;color:var(--ink-soft)}
 .flow-arrow{align-self:center;color:var(--real);font-size:20px;font-weight:700;user-select:none}
+.band-head h3{flex:1;text-align:center}
+.band.M .proc-row{justify-content:center}
+.band.M .proc-card{flex:0 1 290px}
+.band.R .proc-row{flex-wrap:nowrap}
+.band.R .proc-card{flex:1 1 0;min-width:0}
+.band.S .proc-row{justify-content:center}
+.band.S .proc-card{flex:0 1 290px}
 @media(max-width:960px){.carto{grid-template-columns:1fr}.side{flex-direction:row;gap:14px}.side .arrow{transform:rotate(90deg);margin:0}.flow-arrow{display:none}}
 
 /* ===== Drawer (fiche processus) ===== */
