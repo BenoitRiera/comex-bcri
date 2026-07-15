@@ -700,13 +700,10 @@
     const btn = document.getElementById('ms-login-btn');
     btn.disabled = true;
     try {
-      const response = await msalInstance.loginPopup(loginRequest);
-      onAuthenticated(response.account);
+      await msalInstance.loginRedirect(loginRequest);
     } catch (err) {
       btn.disabled = false;
-      if (err.errorCode !== 'user_cancelled') {
-        document.getElementById('login-error').textContent = 'Erreur de connexion. Veuillez réessayer.';
-      }
+      document.getElementById('login-error').textContent = 'Erreur de connexion. Veuillez réessayer.';
     }
   }
 
