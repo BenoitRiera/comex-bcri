@@ -283,6 +283,37 @@
 
   <div class="panel">
     <div class="panel-header">
+      <div class="panel-title">Pilotage temps &amp; pointage — BCR-i Time</div>
+    </div>
+    <div style="font-size:11px;color:var(--text-dim);margin:-8px 0 14px;">Semaine ISO en cours · synchronisé 1×/jour depuis BCR-i Time · ESEIS Pest Control, ALS et ESEIS Travaux n'ont pas d'équivalent côté BCR-i Time</div>
+    <div class="kpi-grid" style="margin-bottom:0;">
+      <!-- KPI-TIME-START -->
+      <div class="kpi" style="border-top:2px solid var(--teal)" data-kpi='{"Global": {"val": "—", "ecart": ""}, "ESEIS": {"val": "—", "ecart": ""}, "ESEIS Cleaning": {"val": "—", "ecart": ""}, "ESEIS Pest Control": {"val": "—", "ecart": ""}, "ALS": {"val": "—", "ecart": ""}, "Café Coton": {"val": "—", "ecart": ""}, "ESEIS Travaux": {"val": "—", "ecart": ""}}'>
+        <div class="kpi-label">Corrections + pointage</div>
+        <div class="kpi-value">—</div>
+        <div class="kpi-delta"></div>
+      </div>
+      <div class="kpi" style="border-top:2px solid var(--blue)" data-kpi='{"Global": {"val": "—", "ecart": ""}, "ESEIS": {"val": "—", "ecart": ""}, "ESEIS Cleaning": {"val": "—", "ecart": ""}, "ESEIS Pest Control": {"val": "—", "ecart": ""}, "ALS": {"val": "—", "ecart": ""}, "Café Coton": {"val": "—", "ecart": ""}, "ESEIS Travaux": {"val": "—", "ecart": ""}}'>
+        <div class="kpi-label">Verrouillage des semaines</div>
+        <div class="kpi-value">—</div>
+        <div class="kpi-delta"></div>
+      </div>
+      <div class="kpi" style="border-top:2px solid var(--amber)" data-kpi='{"Global": {"val": "—", "ecart": ""}, "ESEIS": {"val": "—", "ecart": ""}, "ESEIS Cleaning": {"val": "—", "ecart": ""}, "ESEIS Pest Control": {"val": "—", "ecart": ""}, "ALS": {"val": "—", "ecart": ""}, "Café Coton": {"val": "—", "ecart": ""}, "ESEIS Travaux": {"val": "—", "ecart": ""}}'>
+        <div class="kpi-label">Pointages bruts</div>
+        <div class="kpi-value">—</div>
+        <div class="kpi-delta"></div>
+      </div>
+      <div class="kpi" style="border-top:2px solid var(--purple)" data-kpi='{"Global": {"val": "—", "ecart": ""}, "ESEIS": {"val": "—", "ecart": ""}, "ESEIS Cleaning": {"val": "—", "ecart": ""}, "ESEIS Pest Control": {"val": "—", "ecart": ""}, "ALS": {"val": "—", "ecart": ""}, "Café Coton": {"val": "—", "ecart": ""}, "ESEIS Travaux": {"val": "—", "ecart": ""}}'>
+        <div class="kpi-label">Corrections sans pointage</div>
+        <div class="kpi-value">—</div>
+        <div class="kpi-delta"></div>
+      </div>
+      <!-- KPI-TIME-END -->
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
       <div class="panel-title">Évolution — Opérations</div>
     </div>
     <div class="chart-empty">
@@ -311,7 +342,7 @@
   };
   let msalInstance;
 
-  const ALLOWED_EMAILS = ['benoit.riera@bcr-i.com', 'nicolas.thomas@bcr-i.com'];
+  const ALLOWED_EMAILS = ['benoit.riera@bcr-i.com', 'nicolas.thomas@bcr-i.com', 'mandresy.rasolonjatovo@eseis.fr'];
 
   async function initAuth() {
     msalInstance = new msal.PublicClientApplication(msalConfig);

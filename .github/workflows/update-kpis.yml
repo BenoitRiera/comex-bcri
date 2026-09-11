@@ -263,6 +263,164 @@ jobs:
 
           PYEOF
 
+      - name: Sync BCR-i Time KPIs (operations.html)
+        run: |
+          python3 << 'PYEOF'
+          import os, re, json, sys
+          from datetime import datetime, timedelta
+          from zoneinfo import ZoneInfo
+          import requests
+
+          SUPABASE_URL = "https://wxqlyrjisykusasmogey.supabase.co"
+          SERVICE_KEY  = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+
+          if not SERVICE_KEY:
+              print("SUPABASE_SERVICE_ROLE_KEY absent -> sync BCR-i Time ignore (operations.html inchange).")
+              sys.exit(0)
+
+          HEADERS = {
+              "apikey": SERVICE_KEY,
+              "Authorization": f"Bearer {SERVICE_KEY}",
+              "Content-Type": "application/json",
+          }
+          TZ = ZoneInfo("Europe/Paris")
+
+          def chunk(lst, size=200):
+              for i in range(0, len(lst), size):
+                  yield lst[i:i + size]
+
+          def rest_get(path, params):
+              r = requests.get(f"{SUPABASE_URL}/rest/v1/{path}", headers=HEADERS, params=params, timeout=30)
+              r.raise_for_status()
+              return r.json()
+
+          def rpc_post(fn, payload):
+              r = requests.post(f"{SUPABASE_URL}/rest/v1/rpc/{fn}", headers=HEADERS, json=payload, timeout=60)
+              r.raise_for_status()
+              return r.json()
+
+          try:
+              # Bornes de la semaine ISO en cours (Europe/Paris) — même logique que
+              # getPeriodBounds('week', now) dans TopManagementDashboard.tsx
+              now_paris = datetime.now(TZ)
+              monday = (now_paris - timedelta(days=now_paris.isoweekday() - 1)).replace(
+                  hour=0, minute=0, second=0, microsecond=0
+              )
+              sunday_end = monday + timedelta(days=6, hours=23, minutes=59, seconds=59)
+              start_iso = monday.astimezone(ZoneInfo("UTC")).isoformat()
+              end_iso   = sunday_end.astimezone(ZoneInfo("UTC")).isoformat()
+              print(f"Semaine ISO en cours : {monday.date()} -> {sunday_end.date()}")
+
+              # Contrats ESEIS / ECC / ACC (mêmes 3 régions que TopManagementDashboard.tsx)
+              contracts = rest_get("contracts", {
+                  "select": "id,region", "region": "in.(ESEIS,ECC,ACC)", "limit": "5000",
+              })
+              print(f"{len(contracts)} contrats ESEIS/ECC/ACC trouves")
+
+              def operator_ids_for(region):
+                  """region=None -> les 3 régions réunies (= 'Toutes' côté TopManagementDashboard)."""
+                  cids = [c["id"] for c in contracts if region is None or c["region"] == region]
+                  if not cids:
+                      return []
+                  uc_ids = []
+                  for ids in chunk(cids):
+                      rows = rest_get("user_contracts", {
+                          "select": "user_id", "contract_id": f"in.({','.join(ids)})", "limit": "5000",
+                      })
+                      uc_ids += [row["user_id"] for row in rows]
+                  uniq = list(set(uc_ids))
+                  if not uniq:
+                      return []
+                  oper_ids = []
+                  for ids in chunk(uniq):
+                      rows = rest_get("user_roles", {
+                          "select": "user_id", "user_id": f"in.({','.join(ids)})",
+                          "level": "eq.1", "limit": "5000",
+                      })
+                      oper_ids += [row["user_id"] for row in rows]
+                  return list(set(oper_ids))
+
+              # Mapping confirmé avec l'utilisateur : ESEIS->ESEIS, ECC->ESEIS Cleaning,
+              # ACC->Café Coton, Global->les 3 réunies. Pas d'équivalent BCR-i Time pour
+              # ESEIS Pest Control / ALS / ESEIS Travaux (affichés en "—").
+              ENTITY_MAP = {
+                  "Global": None,
+                  "ESEIS": "ESEIS",
+                  "ESEIS Cleaning": "ECC",
+                  "Café Coton": "ACC",
+              }
+              NO_DATA_ENTITIES = ["ESEIS Pest Control", "ALS", "ESEIS Travaux"]
+
+              kpi_rows = {}
+              for entity_name, region in ENTITY_MAP.items():
+                  op_ids = operator_ids_for(region)
+                  print(f"  {entity_name}: {len(op_ids)} operateur(s)")
+                  if not op_ids:
+                      kpi_rows[entity_name] = None
+                      continue
+                  result = rpc_post("get_top_mgmt_kpis", {
+                      "p_operator_ids": op_ids, "p_start": start_iso, "p_end": end_iso,
+                  })
+                  kpi_rows[entity_name] = result[0] if result else None
+
+              def pct(num, den):
+                  if not den:
+                      return "—"
+                  return f"{round(num / den * 100)} %"
+
+              def ratio(num, den):
+                  return f"{num} / {den}"
+
+              # Même ordre / mêmes ratios que les 4 cartes de TopManagementDashboard.tsx
+              KPIS = [
+                  ("Corrections + pointage",    "corrected_with_clockin", "planned_pairs",       "var(--teal)"),
+                  ("Verrouillage des semaines", "locked_pairs",           "operator_week_pairs", "var(--blue)"),
+                  ("Pointages bruts",           "clocked_in_pairs",       "planned_pairs",       "var(--amber)"),
+                  ("Corrections sans pointage", "pure_corrections",       "planned_pairs",       "var(--purple)"),
+              ]
+
+              kpi_html = "\n      <!-- KPI-TIME-START -->\n"
+              for label, num_key, den_key, color in KPIS:
+                  ent_data = {}
+                  for entity_name in ENTITY_MAP:
+                      row = kpi_rows.get(entity_name)
+                      if row is None:
+                          ent_data[entity_name] = {"val": "—", "ecart": ""}
+                      else:
+                          num, den = int(row[num_key]), int(row[den_key])
+                          ent_data[entity_name] = {"val": pct(num, den), "ecart": ratio(num, den)}
+                  for entity_name in NO_DATA_ENTITIES:
+                      ent_data[entity_name] = {"val": "—", "ecart": ""}
+
+                  default = ent_data["Global"]
+                  data_attr = json.dumps(ent_data, ensure_ascii=False).replace("'", "&#39;")
+                  print(f"  KPI: {label} | Global={default['val']} ({default['ecart']})")
+                  kpi_html += (
+                      f"      <div class=\"kpi\" style=\"border-top:2px solid {color}\""
+                      f" data-kpi='{data_attr}'>\n"
+                      f"        <div class=\"kpi-label\">{label}</div>\n"
+                      f"        <div class=\"kpi-value\">{default['val']}</div>\n"
+                      f"        <div class=\"kpi-delta\">{default['ecart']}</div>\n"
+                      f"      </div>\n"
+                  )
+              kpi_html += "      <!-- KPI-TIME-END -->"
+
+              with open("operations.html", "r", encoding="utf-8") as f:
+                  html = f.read()
+              new_html = re.sub(
+                  r"<!-- KPI-TIME-START -->.*?<!-- KPI-TIME-END -->", kpi_html, html, flags=re.DOTALL
+              )
+              with open("operations.html", "w", encoding="utf-8") as f:
+                  f.write(new_html)
+              print("operations.html (section BCR-i Time) mis a jour OK")
+
+          except Exception as e:
+              # Ne bloque jamais le sync SharePoint des autres pages : on log et on continue.
+              print(f"Sync BCR-i Time ignore suite a une erreur (operations.html inchange) : {e}")
+          PYEOF
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
       - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
