@@ -1011,8 +1011,8 @@
   async function uploadToSP(entity, docKey, file) {
     if (!spDriveId) return null;
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-    const path = COMP_FOLDER+'/'+entity+'/'+docKey+'__'+safeName;
-    const r = await spFetch('/drives/'+spDriveId+'/root:/'+encodeURIComponent(path)+':/content',
+    const encodedPath = [COMP_FOLDER, entity, docKey+'__'+safeName].map(encodeURIComponent).join('/');
+    const r = await spFetch('/drives/'+spDriveId+'/root:/'+encodedPath+':/content',
       {method:'PUT', headers:{'Content-Type':file.type||'application/pdf'}, body:file});
     if (!r?.ok) return null;
     const item = await r.json();
