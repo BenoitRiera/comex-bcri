@@ -1010,7 +1010,7 @@
   }
 
   async function uploadToSP(entity, docKey, file) {
-    if (!spDriveId) return null;
+    if (!spDriveId) { const ok = await initSP(); if (!ok) return null; }
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
     const encodedPath = [COMP_FOLDER, entity, docKey+'__'+safeName].map(encodeURIComponent).join('/');
     const r = await spFetch('/drives/'+spDriveId+'/root:/'+encodedPath+':/content',
@@ -1021,7 +1021,8 @@
   }
 
   async function getDownloadUrl(itemId) {
-    if (!itemId||!spDriveId) return null;
+    if (!itemId) return null;
+    if (!spDriveId) { const ok = await initSP(); if (!ok) return null; }
     const r = await spFetch('/drives/'+spDriveId+'/items/'+itemId);
     if (!r?.ok) return null;
     const item = await r.json();
@@ -1110,7 +1111,7 @@
           const daysTxt = days<0 ? 'expiré '+(-days)+'j' : days<=COMP_WARN_DAYS ? days+'j restants' : fmtDate(info.expiryDate);
           html += '<span style="font-size:10px;font-weight:600;color:'+s.color+'">'+daysTxt+'</span>';
           html += '<div style="display:flex;gap:4px;margin-top:3px">';
-          if (info.itemId||info.downloadUrl||info.webUrl||canUpload) {
+          if (info.itemId||info.downloadUrl||info.webUrl) {
             html += '<button onclick="event.stopPropagation();doCompDownload(\''+entity+'\',\''+doc.key+'\')" style="font-size:9px;padding:2px 7px;border-radius:8px;border:1px solid var(--card-border);background:transparent;color:var(--text-muted);cursor:pointer;font-family:inherit" title="Télécharger">↓</button>';
           }
           if (canUpload) {
@@ -1233,9 +1234,9 @@
       itemId:spResult?.itemId||null, webUrl:spResult?.webUrl||null, downloadUrl:null
     };
     const saved=await saveCompMeta();
-    document.getElementById('comp-msg').textContent=saved
+    document.getElementById('comp-msg').textContent=spResult
       ?'✓ Document enregistré dans SharePoint.'
-      :'✓ Enregistré localement. (Configurez Files.ReadWrite.All dans Azure AD pour le partage.)';
+      :'⚠ SharePoint inaccessible — document non enregistré. Réessayez ou vérifiez les permissions Azure AD.';
     btn.textContent='Enregistrer';
     setTimeout(()=>{closeCompModal();renderCompTable();},1400);
   }
