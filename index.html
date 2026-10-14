@@ -1108,7 +1108,7 @@
           const daysTxt = days<0 ? 'expiré '+(-days)+'j' : days<=COMP_WARN_DAYS ? days+'j restants' : fmtDate(info.expiryDate);
           html += '<span style="font-size:10px;font-weight:600;color:'+s.color+'">'+daysTxt+'</span>';
           html += '<div style="display:flex;gap:4px;margin-top:3px">';
-          if (info.itemId||info.downloadUrl) {
+          if (info.itemId||info.downloadUrl||info.webUrl||canUpload) {
             html += '<button onclick="event.stopPropagation();doCompDownload(\''+entity+'\',\''+doc.key+'\')" style="font-size:9px;padding:2px 7px;border-radius:8px;border:1px solid var(--card-border);background:transparent;color:var(--text-muted);cursor:pointer;font-family:inherit" title="Télécharger">↓</button>';
           }
           if (canUpload) {
@@ -1208,8 +1208,9 @@
       const url=await getDownloadUrl(info.itemId);
       if(url){window.open(url,'_blank');return;}
     }
-    if(info.downloadUrl) window.open(info.downloadUrl,'_blank');
-    else alert('Fichier non disponible en téléchargement.');
+    if(info.webUrl){window.open(info.webUrl,'_blank');return;}
+    if(info.downloadUrl){window.open(info.downloadUrl,'_blank');return;}
+    alert('Fichier non disponible en téléchargement.');
   }
 
   async function doCompUpload() {
