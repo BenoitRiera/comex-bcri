@@ -164,6 +164,25 @@
   .filter-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
   .filter-btn.active { background: var(--teal); border-color: var(--teal); color: #fff; }
 
+  /* DOCUMENTS RÉGLEMENTAIRES */
+  .comp-cell { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:10px 6px; min-height:72px; text-align:center; transition:background .15s; }
+  .comp-cell.clickable:hover { background:rgba(255,255,255,0.04); cursor:pointer; }
+  /* MODAL UPLOAD */
+  .comp-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:200; }
+  .comp-modal { background:#0f2647; border:1px solid var(--card-border); border-radius:16px; padding:28px; width:100%; max-width:460px; display:flex; flex-direction:column; gap:16px; box-shadow:0 20px 60px rgba(0,0,0,.5); }
+  .comp-modal h3 { font-size:15px; font-weight:600; }
+  .comp-modal label { font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); display:block; margin-bottom:5px; }
+  .comp-file-zone { border:2px dashed var(--card-border); border-radius:10px; padding:20px; text-align:center; cursor:pointer; transition:border-color .2s; }
+  .comp-file-zone:hover { border-color:var(--teal); }
+  .comp-modal input[type=date] { width:100%; background:rgba(255,255,255,0.06); border:1px solid var(--card-border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'DM Mono',monospace; font-size:13px; outline:none; transition:border-color .2s; }
+  .comp-modal input[type=date]:focus { border-color:var(--teal); }
+  .comp-modal input[type=file] { display:none; }
+  .comp-modal-btns { display:flex; gap:10px; justify-content:flex-end; }
+  .comp-btn { border-radius:8px; padding:9px 18px; font-size:13px; font-weight:500; font-family:'DM Sans',sans-serif; cursor:pointer; border:1px solid var(--card-border); background:transparent; color:var(--text-muted); transition:opacity .15s; }
+  .comp-btn.primary { background:var(--teal); border-color:var(--teal); color:#fff; }
+  .comp-btn:disabled { opacity:.4; cursor:not-allowed; }
+  .comp-btn:not(:disabled):hover { opacity:.85; }
+
   /* KPI STRIP */
   .kpi-grid {
     display: grid;
@@ -691,6 +710,50 @@
       <span style="margin-left: auto; font-size: 11px; color: var(--text-dim);">→ Ouvrir</span>
     </a>
 
+    <!-- DOCUMENTS RÉGLEMENTAIRES -->
+    <div style="margin-bottom:28px;">
+      <div class="section-header" style="margin-bottom:10px;">
+        <span class="section-title">Documents réglementaires</span>
+        <span id="comp-badge" style="display:none;font-size:11px;font-weight:600;border-radius:12px;padding:3px 11px;border:1px solid"></span>
+      </div>
+      <div id="comp-alerts"></div>
+      <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--card-border);">
+        <table id="comp-table" style="width:100%;border-collapse:collapse;min-width:860px;"></table>
+      </div>
+    </div>
+
+    <!-- Modal upload -->
+    <div id="comp-overlay" class="comp-overlay" style="display:none" onclick="if(event.target===this)closeCompModal()">
+      <div class="comp-modal">
+        <h3 id="comp-modal-title"></h3>
+        <div>
+          <label>Document (PDF)</label>
+          <div class="comp-file-zone" id="comp-file-zone"
+               onclick="document.getElementById('comp-file-input').click()"
+               ondragover="event.preventDefault();this.style.borderColor='var(--teal)'"
+               ondragleave="this.style.borderColor=''"
+               ondrop="event.preventDefault();this.style.borderColor='';handleCompFile(event.dataTransfer.files[0])">
+            <div style="font-size:28px;margin-bottom:8px">📄</div>
+            <p id="comp-file-zone-txt" style="font-size:12px;color:var(--text-muted)">Cliquez ou glissez un fichier PDF ici</p>
+          </div>
+          <input type="file" id="comp-file-input" accept=".pdf,.PDF" onchange="handleCompFile(this.files[0])">
+        </div>
+        <div>
+          <label id="comp-date-label">Date du document</label>
+          <input type="date" id="comp-doc-date" onchange="updateCompExpiry()">
+        </div>
+        <div id="comp-expiry-row">
+          <label>Date d'expiration (indiquée sur le document)</label>
+          <input type="date" id="comp-expiry-date">
+        </div>
+        <div id="comp-msg" style="font-size:12px;color:var(--teal);min-height:16px;"></div>
+        <div class="comp-modal-btns">
+          <button class="comp-btn" onclick="closeCompModal()">Annuler</button>
+          <button class="comp-btn primary" id="comp-upload-btn" onclick="doCompUpload()" disabled>Enregistrer</button>
+        </div>
+      </div>
+    </div>
+
     <!-- BOTTOM -->
     <div class="bottom-grid">
       <div class="panel">
@@ -864,6 +927,317 @@
       document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
     }
     window.slide = function(dir) { goTo(current + dir); }
+    initCompliance();
+  }
+
+  /* ===== DOCUMENTS RÉGLEMENTAIRES ===== */
+  const COMP_ENTITIES = ['BCR-i Holding','ESEIS','ESEIS Cleaning','ESEIS Pest Control','ALS','SERT','Dargent Thermique'];
+  const COMP_DOCS = [
+    {key:'kbis',    label:'K-bis',                 hint:'Validité 3 mois', validity:{type:'months',n:3}, uploaders:['benoit.riera@bcr-i.com']},
+    {key:'fiscale', label:'Régularité fiscale',     hint:'Validité 3 mois', validity:{type:'months',n:3}, uploaders:['justine.ribeyre@bcr-i.com']},
+    {key:'urssaf',  label:'Attestation URSSAF',     hint:'Validité 3 mois', validity:{type:'months',n:3}, uploaders:['nicolas.thomas@bcr-i.com']},
+    {key:'rc',      label:'Assurance RC',           hint:'Date sur le doc', validity:{type:'doc'},        uploaders:['benoit.riera@bcr-i.com']},
+    {key:'dec',     label:'Assurance Décennale',    hint:'Date sur le doc', validity:{type:'doc'},        uploaders:['benoit.riera@bcr-i.com']},
+    {key:'te',      label:'Travailleurs étrangers', hint:'Validité 6 mois', validity:{type:'months',n:6}, uploaders:['nicolas.thomas@bcr-i.com']},
+  ];
+  const COMP_WARN_DAYS = 30;
+  const COMP_STORE_KEY = 'bcri-comp-v2';
+  const SP_HOST = 'bcriholding.sharepoint.com';
+  const SP_SITE_PATH = '/sites/Cokpit_Comex';
+  const COMP_FOLDER = 'Documents Reglementaires';
+
+  let compMeta = {};
+  let compCtx = null;
+  let compFile = null;
+  let spToken = null;
+  let spSiteId = null;
+  let spDriveId = null;
+
+  /* -- Graph API -- */
+  async function getSpToken() {
+    if (!msalInstance) return null;
+    const accounts = msalInstance.getAllAccounts();
+    if (!accounts.length) return null;
+    const req = {scopes:['https://graph.microsoft.com/Files.ReadWrite.All'], account:accounts[0]};
+    try {
+      try { const r = await msalInstance.acquireTokenSilent(req); return r.accessToken; }
+      catch { const r = await msalInstance.acquireTokenPopup(req); return r.accessToken; }
+    } catch(e) { return null; }
+  }
+
+  async function spFetch(path, opts={}) {
+    if (!spToken) spToken = await getSpToken();
+    if (!spToken) return null;
+    try {
+      const r = await fetch('https://graph.microsoft.com/v1.0'+path, {...opts, headers:{Authorization:'Bearer '+spToken, ...opts.headers}});
+      if (r.status===401) { spToken=await getSpToken(); return spFetch(path,opts); }
+      return r;
+    } catch(e) { return null; }
+  }
+
+  async function initSP() {
+    if (spSiteId) return true;
+    const r = await spFetch('/sites/'+SP_HOST+':'+SP_SITE_PATH);
+    if (!r?.ok) return false;
+    spSiteId = (await r.json()).id;
+    const dr = await spFetch('/sites/'+spSiteId+'/drive');
+    if (!dr?.ok) return false;
+    spDriveId = (await dr.json()).id;
+    return true;
+  }
+
+  /* -- Metadata -- */
+  async function loadCompMeta() {
+    const ok = await initSP();
+    if (ok) {
+      const r = await spFetch('/drives/'+spDriveId+'/root:/'+encodeURIComponent(COMP_FOLDER)+'/metadata.json:/content');
+      if (r?.ok) { try { return await r.json(); } catch {} }
+    }
+    try { return JSON.parse(localStorage.getItem(COMP_STORE_KEY)||'{}'); } catch { return {}; }
+  }
+
+  async function saveCompMeta() {
+    const json = JSON.stringify(compMeta, null, 2);
+    try { localStorage.setItem(COMP_STORE_KEY, json); } catch {}
+    if (!spDriveId) return false;
+    const r = await spFetch('/drives/'+spDriveId+'/root:/'+encodeURIComponent(COMP_FOLDER)+'/metadata.json:/content',
+      {method:'PUT', headers:{'Content-Type':'application/json'}, body:json});
+    return r?.ok||false;
+  }
+
+  async function uploadToSP(entity, docKey, file) {
+    if (!spDriveId) return null;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const path = COMP_FOLDER+'/'+entity+'/'+docKey+'__'+safeName;
+    const r = await spFetch('/drives/'+spDriveId+'/root:/'+encodeURIComponent(path)+':/content',
+      {method:'PUT', headers:{'Content-Type':file.type||'application/pdf'}, body:file});
+    if (!r?.ok) return null;
+    const item = await r.json();
+    return {itemId:item.id, webUrl:item.webUrl};
+  }
+
+  async function getDownloadUrl(itemId) {
+    if (!itemId||!spDriveId) return null;
+    const r = await spFetch('/drives/'+spDriveId+'/items/'+itemId);
+    if (!r?.ok) return null;
+    const item = await r.json();
+    return item['@microsoft.graph.downloadUrl']||item.webUrl||null;
+  }
+
+  /* -- Dates -- */
+  function addMonths(dateStr, n) {
+    const d = new Date(dateStr); d.setMonth(d.getMonth()+n);
+    return d.toISOString().split('T')[0];
+  }
+  function calcExpiryDate(docKey, docDate) {
+    const doc = COMP_DOCS.find(d=>d.key===docKey);
+    if (!doc||doc.validity.type!=='months') return null;
+    return addMonths(docDate, doc.validity.n);
+  }
+  function daysUntil(dateStr) {
+    const t=new Date(); t.setHours(0,0,0,0);
+    const d=new Date(dateStr); d.setHours(0,0,0,0);
+    return Math.floor((d-t)/86400000);
+  }
+  function cellStatus(info) {
+    if (!info?.expiryDate) return 'missing';
+    const days=daysUntil(info.expiryDate);
+    return days<0?'expired':days<=COMP_WARN_DAYS?'warning':'ok';
+  }
+  function fmtDate(s) {
+    if(!s) return '—';
+    const [y,m,d]=s.split('-'); return d+'/'+m+'/'+y;
+  }
+
+  /* -- Date extraction -- */
+  async function extractDateFromFile(file) {
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const bytes = new Uint8Array(e.target.result);
+          let s='';
+          for(let i=0;i<Math.min(bytes.length,80000);i++) s+=String.fromCharCode(bytes[i]);
+          const m1=s.match(/D:(\d{4})(\d{2})(\d{2})/);
+          if(m1){resolve(m1[1]+'-'+m1[2]+'-'+m1[3]);return;}
+          const m2=s.match(/(\d{2})\/(\d{2})\/(20\d{2})/);
+          if(m2&&parseInt(m2[2])<=12){resolve(m2[3]+'-'+m2[2]+'-'+m2[1]);return;}
+          resolve(null);
+        } catch{resolve(null);}
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  /* -- Render table -- */
+  function renderCompTable() {
+    const table = document.getElementById('comp-table');
+    if (!table) return;
+    const userEmail = (localStorage.getItem('bcri-user-email')||'').toLowerCase();
+    const STATUS = {
+      ok:      {icon:'✅', color:'var(--teal)'},
+      warning: {icon:'⚠️', color:'var(--amber)'},
+      expired: {icon:'❌', color:'var(--red)'},
+      missing: {icon:'➕', color:'var(--text-dim)'}
+    };
+    let html = '<thead><tr>';
+    html += '<th style="text-align:left;padding:10px 14px;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);background:rgba(0,0,0,.25);min-width:165px;border:1px solid var(--card-border)">Document</th>';
+    COMP_ENTITIES.forEach(e=>{
+      html += '<th style="padding:8px 6px;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);background:rgba(0,0,0,.25);white-space:nowrap;border:1px solid var(--card-border);min-width:112px">'+e+'</th>';
+    });
+    html += '</tr></thead><tbody>';
+    COMP_DOCS.forEach(doc=>{
+      html += '<tr>';
+      html += '<td style="padding:10px 14px;border:1px solid var(--card-border);background:rgba(0,0,0,.12);white-space:nowrap;">'
+            + '<div style="font-size:12px;font-weight:500">'+doc.label+'</div>'
+            + '<div style="font-size:10px;color:var(--text-dim);margin-top:2px">'+doc.hint+'</div></td>';
+      COMP_ENTITIES.forEach(entity=>{
+        const info = (compMeta[entity]||{})[doc.key];
+        const status = cellStatus(info);
+        const s = STATUS[status];
+        const canUpload = doc.uploaders.includes(userEmail);
+        const cellClass = 'comp-cell'+(canUpload?' clickable':'');
+        const clickAttr = canUpload ? 'onclick="openCompModal(\''+entity+'\',\''+doc.key+'\')"' : '';
+        html += '<td style="padding:0;border:1px solid var(--card-border)">';
+        html += '<div class="'+cellClass+'" '+clickAttr+'>';
+        html += '<span style="font-size:18px;line-height:1">'+s.icon+'</span>';
+        if (info) {
+          const days = daysUntil(info.expiryDate);
+          const daysTxt = days<0 ? 'expiré '+(-days)+'j' : days<=COMP_WARN_DAYS ? days+'j restants' : fmtDate(info.expiryDate);
+          html += '<span style="font-size:10px;font-weight:600;color:'+s.color+'">'+daysTxt+'</span>';
+          html += '<div style="display:flex;gap:4px;margin-top:3px">';
+          if (info.itemId||info.downloadUrl) {
+            html += '<button onclick="event.stopPropagation();doCompDownload(\''+entity+'\',\''+doc.key+'\')" style="font-size:9px;padding:2px 7px;border-radius:8px;border:1px solid var(--card-border);background:transparent;color:var(--text-muted);cursor:pointer;font-family:inherit" title="Télécharger">↓</button>';
+          }
+          if (canUpload) {
+            html += '<button onclick="event.stopPropagation();openCompModal(\''+entity+'\',\''+doc.key+'\')" style="font-size:9px;padding:2px 7px;border-radius:8px;border:1px solid var(--card-border);background:transparent;color:var(--text-muted);cursor:pointer;font-family:inherit" title="Mettre à jour">↑</button>';
+          }
+          html += '</div>';
+        } else {
+          html += '<span style="font-size:10px;color:'+(canUpload?'var(--teal)':'var(--text-dim)')+'">'+( canUpload?'Ajouter':'—')+'</span>';
+        }
+        html += '</div></td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody>';
+    table.innerHTML = html;
+    renderCompAlerts();
+  }
+
+  function renderCompAlerts() {
+    const alerts=[];
+    COMP_DOCS.forEach(doc=>{
+      COMP_ENTITIES.forEach(entity=>{
+        const info=(compMeta[entity]||{})[doc.key];
+        const status=cellStatus(info);
+        if(status==='expired') alerts.push({lvl:'error', msg:doc.label+' — '+entity+' : expiré ('+fmtDate(info?.expiryDate)+')'});
+        else if(status==='warning'){const days=daysUntil(info.expiryDate); alerts.push({lvl:'warn', msg:doc.label+' — '+entity+' : expire dans '+days+' jour'+(days>1?'s':'')+' ('+fmtDate(info.expiryDate)+')'});}
+      });
+    });
+    const el=document.getElementById('comp-alerts');
+    const badge=document.getElementById('comp-badge');
+    if(!el) return;
+    if(!alerts.length){el.innerHTML='';if(badge)badge.style.display='none';return;}
+    const hasExp=alerts.some(a=>a.lvl==='error');
+    if(badge){
+      badge.style.display='';
+      badge.style.background=hasExp?'rgba(226,75,74,0.15)':'rgba(239,159,39,0.12)';
+      badge.style.color=hasExp?'var(--red)':'var(--amber)';
+      badge.style.borderColor=hasExp?'rgba(226,75,74,0.3)':'rgba(239,159,39,0.3)';
+      badge.textContent=(hasExp?alerts.filter(a=>a.lvl==='error').length+' expiré(s)':alerts.length+' expiration(s) imminente(s)');
+    }
+    el.innerHTML='<div style="background:'+(hasExp?'rgba(226,75,74,0.08)':'rgba(239,159,39,0.08)')+';border:1px solid '+(hasExp?'rgba(226,75,74,0.2)':'rgba(239,159,39,0.2)')+';border-radius:10px;padding:10px 14px;margin-bottom:8px">'
+      +alerts.map(a=>'<div style="display:flex;align-items:center;gap:8px;padding:2px 0;font-size:12px;color:'+(a.lvl==='error'?'var(--red)':'var(--amber)')+'"><span>'+(a.lvl==='error'?'❌':'⚠️')+'</span>'+a.msg+'</div>').join('')+'</div>';
+  }
+
+  /* -- Modal -- */
+  function openCompModal(entity, docKey) {
+    const doc=COMP_DOCS.find(d=>d.key===docKey); if(!doc) return;
+    compCtx={entity,docKey}; compFile=null;
+    document.getElementById('comp-modal-title').textContent=doc.label+' — '+entity;
+    document.getElementById('comp-file-zone-txt').textContent='Cliquez ou glissez un fichier PDF ici';
+    document.getElementById('comp-doc-date').value='';
+    document.getElementById('comp-expiry-date').value='';
+    document.getElementById('comp-msg').textContent='';
+    document.getElementById('comp-upload-btn').disabled=true;
+    document.getElementById('comp-file-input').value='';
+    const isDoc=doc.validity.type==='doc';
+    document.getElementById('comp-date-label').textContent=isDoc?'Date de début (optionnelle)':'Date du document (validité '+doc.validity.n+' mois)';
+    document.getElementById('comp-expiry-row').style.display=isDoc?'':'none';
+    document.getElementById('comp-overlay').style.display='flex';
+  }
+
+  function closeCompModal(){
+    document.getElementById('comp-overlay').style.display='none';
+    compCtx=null; compFile=null;
+  }
+
+  async function handleCompFile(file) {
+    if(!file) return;
+    compFile=file;
+    document.getElementById('comp-file-zone-txt').textContent='✓ '+file.name;
+    document.getElementById('comp-msg').textContent='Analyse du document...';
+    const extracted=await extractDateFromFile(file);
+    if(extracted){
+      document.getElementById('comp-doc-date').value=extracted;
+      document.getElementById('comp-msg').textContent='Date détectée : '+fmtDate(extracted)+' — vérifiez avant d\'enregistrer.';
+      updateCompExpiry();
+    } else {
+      document.getElementById('comp-msg').textContent='Date non détectée — saisissez-la manuellement.';
+    }
+    document.getElementById('comp-upload-btn').disabled=false;
+  }
+
+  function updateCompExpiry() {
+    if(!compCtx) return;
+    const doc=COMP_DOCS.find(d=>d.key===compCtx.docKey);
+    if(!doc||doc.validity.type==='doc') return;
+    const dateVal=document.getElementById('comp-doc-date').value;
+    if(!dateVal) return;
+    const exp=calcExpiryDate(compCtx.docKey,dateVal);
+    if(exp) document.getElementById('comp-msg').textContent='Expiration calculée : '+fmtDate(exp);
+  }
+
+  async function doCompDownload(entity, docKey) {
+    const info=(compMeta[entity]||{})[docKey];
+    if(!info) return;
+    if(info.itemId){
+      const url=await getDownloadUrl(info.itemId);
+      if(url){window.open(url,'_blank');return;}
+    }
+    if(info.downloadUrl) window.open(info.downloadUrl,'_blank');
+    else alert('Fichier non disponible en téléchargement.');
+  }
+
+  async function doCompUpload() {
+    if(!compCtx||!compFile) return;
+    const {entity,docKey}=compCtx;
+    const doc=COMP_DOCS.find(d=>d.key===docKey);
+    const btn=document.getElementById('comp-upload-btn');
+    btn.disabled=true; btn.textContent='Enregistrement...';
+    document.getElementById('comp-msg').textContent='Téléversement en cours...';
+    const docDate=document.getElementById('comp-doc-date').value||new Date().toISOString().split('T')[0];
+    const expiryDate=doc.validity.type==='months'?calcExpiryDate(docKey,docDate):(document.getElementById('comp-expiry-date').value||null);
+    const spResult=await uploadToSP(entity,docKey,compFile);
+    if(!compMeta[entity]) compMeta[entity]={};
+    compMeta[entity][docKey]={
+      filename:compFile.name, docDate, expiryDate,
+      uploadedBy:localStorage.getItem('bcri-user-email')||'',
+      uploadedAt:new Date().toISOString().split('T')[0],
+      itemId:spResult?.itemId||null, webUrl:spResult?.webUrl||null, downloadUrl:null
+    };
+    const saved=await saveCompMeta();
+    document.getElementById('comp-msg').textContent=saved
+      ?'✓ Document enregistré dans SharePoint.'
+      :'✓ Enregistré localement. (Configurez Files.ReadWrite.All dans Azure AD pour le partage.)';
+    btn.textContent='Enregistrer';
+    setTimeout(()=>{closeCompModal();renderCompTable();},1400);
+  }
+
+  async function initCompliance() {
+    compMeta=await loadCompMeta();
+    renderCompTable();
   }
 
   initAuth();
